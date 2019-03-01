@@ -42,6 +42,5 @@ namespace KS.Fiks.ASiC_E.Model
         private const string UriStringSHA256 = "http://www.w3.org/2001/04/xmlenc#sha256";
         private const string UriStringSHA384 = "http://www.w3.org/2001/04/xmlenc#sha384";
         private const string UriStringSHA512 = "http://www.w3.org/2001/04/xmlenc#sha512";
-
     }
 }
