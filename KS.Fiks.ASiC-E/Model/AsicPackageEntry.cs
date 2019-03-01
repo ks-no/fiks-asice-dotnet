@@ -10,7 +10,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         public MessageDigestAlgorithm MessageDigestAlgorithm { get; }
 
-        public byte[] Digest { get; set; }
+        public DigestContainer Digest { get; set; }
 
         public AsicPackageEntry(string fileName, MimeType type, MessageDigestAlgorithm messageDigestAlgorithm)
         {

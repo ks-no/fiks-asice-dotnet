@@ -39,7 +39,7 @@ namespace KS.Fiks.ASiC_E.Manifest
                 {
                     Algorithm = packageEntry.MessageDigestAlgorithm.Uri.ToString()
                 },
-                DigestValue = packageEntry.Digest,
+                DigestValue = packageEntry.Digest.GetDigest(),
                 URI = packageEntry.FileName
             };
         }

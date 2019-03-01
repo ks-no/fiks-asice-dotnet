@@ -79,7 +79,7 @@ namespace KS.Fiks.ASiC_E.Model
                 var digest = new byte[digestStream.WriteDigest().GetDigestSize()];
                 digestStream.CopyTo(zipStream);
                 digestStream.WriteDigest().DoFinal(digest, 0);
-                entry.Digest = digest;
+                entry.Digest = new DigestContainer(digest, MessageDigestAlgorithm);
             }
 
             return entry;
