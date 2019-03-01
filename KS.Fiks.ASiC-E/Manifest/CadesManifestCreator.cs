@@ -11,7 +11,7 @@ namespace KS.Fiks.ASiC_E.Manifest
     {
         public const string FILENAME = "META-INF/asicmanifest.xml";
 
-        public override Model.ManifestContainer CreateManifest(IEnumerable<AsicPackageEntry> entries)
+        public override ManifestContainer CreateManifest(IEnumerable<AsicPackageEntry> entries)
         {
 
             var manifest = new ASiCManifestType
@@ -21,12 +21,17 @@ namespace KS.Fiks.ASiC_E.Manifest
             using (var outStream = new MemoryStream())
             {
                 new XmlSerializer(typeof(ASiCManifestType)).Serialize(outStream, manifest);
-                return new Model.ManifestContainer(FILENAME, outStream.ToArray(), CreateSignatureRef());
+                return new ManifestContainer(FILENAME, outStream.ToArray(), CreateSignatureRef());
             }
         }
 
-        private DataObjectReferenceType ToDataObject(AsicPackageEntry packageEntry)
+        private static DataObjectReferenceType ToDataObject(AsicPackageEntry packageEntry)
         {
+            if (packageEntry == null)
+            {
+                return null;
+            }
+
             return new DataObjectReferenceType
             {
                 MimeType = packageEntry.Type.ToString(),
