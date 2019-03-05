@@ -14,7 +14,7 @@ namespace KS.Fiks.ASiC_E.Test
         [InlineData("filename.xls", "application/vnd.ms-excel")]
         [InlineData("filename.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
         [InlineData("filename.xml", "application/xml")]
-        public void testExtractMimeType(string fileName, string mimeType)
+        public void TestExtractMimeType(string fileName, string mimeType)
         {
             var type = MimeTypeExtractor.ExtractMimeType(fileName);
 
@@ -26,7 +26,7 @@ namespace KS.Fiks.ASiC_E.Test
         }
 
         [Fact(DisplayName = "Extract MIME type for PDF")]
-        public void testPDF()
+        public void TestPdf()
         {
             var pdfType = MimeTypeExtractor.ExtractMimeType("filename.pdf");
 
@@ -42,7 +42,7 @@ namespace KS.Fiks.ASiC_E.Test
         [InlineData("filename.xxs")]
         [InlineData("filename.xyy")]
         [InlineData("filename.illegal")]
-        public void testIllegalMimeType(string fileName)
+        public void TestIllegalMimeType(string fileName)
         {
             var type = MimeTypeExtractor.ExtractMimeType(fileName);
             type.Should()
@@ -54,11 +54,10 @@ namespace KS.Fiks.ASiC_E.Test
         }
 
         [Fact(DisplayName = "Test using null")]
-        public void testNull()
+        public void TestNull()
         {
             Action action = () => MimeTypeExtractor.ExtractMimeType(null);
             action.Should().Throw<ArgumentNullException>();
         }
     }
-
 }

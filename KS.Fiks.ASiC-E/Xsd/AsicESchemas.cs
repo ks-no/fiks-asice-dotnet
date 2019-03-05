@@ -13,7 +13,6 @@
 //
 namespace KS.Fiks.ASiC_E.Xsd {
     
-    
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "0.0.0.0")]
     [System.SerializableAttribute()]
@@ -3397,8 +3396,8 @@ namespace KS.Fiks.ASiC_E.Xsd {
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/02918/v1.2.1#")]
-    [System.Xml.Serialization.XmlRootAttribute("ASiCManifest", Namespace="http://uri.etsi.org/02918/v1.2.1#", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/2918/v1.2.1#")]
+    [System.Xml.Serialization.XmlRootAttribute("ASiCManifest", Namespace="http://uri.etsi.org/2918/v1.2.1#", IsNullable=false)]
     public partial class ASiCManifestType {
         
         private SigReferenceType sigReferenceField;
@@ -3445,8 +3444,8 @@ namespace KS.Fiks.ASiC_E.Xsd {
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/02918/v1.2.1#")]
-    [System.Xml.Serialization.XmlRootAttribute("SigReference", Namespace="http://uri.etsi.org/02918/v1.2.1#", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/2918/v1.2.1#")]
+    [System.Xml.Serialization.XmlRootAttribute("SigReference", Namespace="http://uri.etsi.org/2918/v1.2.1#", IsNullable=false)]
     public partial class SigReferenceType {
         
         private string uRIField;
@@ -3481,8 +3480,8 @@ namespace KS.Fiks.ASiC_E.Xsd {
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/02918/v1.2.1#")]
-    [System.Xml.Serialization.XmlRootAttribute("DataObjectReference", Namespace="http://uri.etsi.org/02918/v1.2.1#", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/2918/v1.2.1#")]
+    [System.Xml.Serialization.XmlRootAttribute("DataObjectReference", Namespace="http://uri.etsi.org/2918/v1.2.1#", IsNullable=false)]
     public partial class DataObjectReferenceType {
         
         private DigestMethodType digestMethodField;
@@ -3582,8 +3581,8 @@ namespace KS.Fiks.ASiC_E.Xsd {
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/02918/v1.2.1#")]
-    [System.Xml.Serialization.XmlRootAttribute("Extension", Namespace="http://uri.etsi.org/02918/v1.2.1#", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/2918/v1.2.1#")]
+    [System.Xml.Serialization.XmlRootAttribute("Extension", Namespace="http://uri.etsi.org/2918/v1.2.1#", IsNullable=false)]
     public partial class ExtensionType {
         
         private bool criticalField;
@@ -3605,8 +3604,8 @@ namespace KS.Fiks.ASiC_E.Xsd {
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/02918/v1.2.1#")]
-    [System.Xml.Serialization.XmlRootAttribute("XAdESSignatures", Namespace="http://uri.etsi.org/02918/v1.2.1#", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://uri.etsi.org/2918/v1.2.1#")]
+    [System.Xml.Serialization.XmlRootAttribute("XAdESSignatures", Namespace="http://uri.etsi.org/2918/v1.2.1#", IsNullable=false)]
     public partial class XAdESSignaturesType {
         
         private SignatureType[] signatureField;
@@ -3621,5 +3620,6 @@ namespace KS.Fiks.ASiC_E.Xsd {
                 this.signatureField = value;
             }
         }
-    }
+    }    
+
 }

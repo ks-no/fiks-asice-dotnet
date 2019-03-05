@@ -6,7 +6,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Serialization;
+using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
+using KS.Fiks.ASiC_E.Sign;
 using KS.Fiks.ASiC_E.Xsd;
 using Org.BouncyCastle.Crypto.IO;
 
@@ -16,35 +18,45 @@ namespace KS.Fiks.ASiC_E.Model
     {
         private ZipArchive Archive { get;  }
 
-        private readonly Queue<AsicPackageEntry> _entries = new Queue<AsicPackageEntry>();
+        private ICertificateHolder SignatureCertificate { get; }
 
-        private readonly IManifestCreator _manifestCreator;
+        private readonly Queue<AsicePackageEntry> entries = new Queue<AsicePackageEntry>();
+
+        private readonly IManifestCreator manifestCreator;
 
         private MessageDigestAlgorithm MessageDigestAlgorithm { get; }
 
-        public AsiceArchive(ZipArchive archive, IManifestCreator creator, MessageDigestAlgorithm messageDigestAlgorithm)
+        public AsiceArchive(ZipArchive archive, IManifestCreator creator, MessageDigestAlgorithm messageDigestAlgorithm, ICertificateHolder signatureCertificate)
         {
             Archive = archive ?? throw new ArgumentNullException(nameof(archive));
-            this._manifestCreator = creator ?? throw new ArgumentNullException(nameof(creator));
+            this.manifestCreator = creator ?? throw new ArgumentNullException(nameof(creator));
             MessageDigestAlgorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
+            SignatureCertificate = signatureCertificate;
         }
 
-        public static AsiceArchive Create(Stream zipOutStream, IManifestCreator manifestCreator)
+        public static AsiceArchive Create(Stream zipOutStream, IManifestCreator manifestCreator, ICertificateHolder signatureCertificateHolder)
         {
             var zipArchive = new ZipArchive(zipOutStream, ZipArchiveMode.Create, false, Encoding.UTF8);
-            var zipArchiveEntry = zipArchive.CreateEntry("mimetype");
+
+            // Add mimetype entry
+            var zipArchiveEntry = zipArchive.CreateEntry(AsiceConstants.FileNameMimeType);
 
             using (var stream = zipArchiveEntry.Open())
             {
-                stream.Write(Encoding.UTF8.GetBytes(AscieConstants.ContentTypeASiCe));
+                stream.Write(Encoding.UTF8.GetBytes(AsiceConstants.ContentTypeASiCe));
             }
 
-            return new AsiceArchive(zipArchive, manifestCreator, MessageDigestAlgorithm.SHA256);
+            return new AsiceArchive(zipArchive, manifestCreator, MessageDigestAlgorithm.SHA256, signatureCertificateHolder);
         }
 
-        /**
-         * Add file to ASiC-E package
-         */
+        /// <summary>
+        /// Add file to ASiC-E package
+        /// </summary>
+        /// <param name="contentStream">The stream that contains the data</param>
+        /// <param name="entry">A description of the file entry</param>
+        /// <returns>The archive with the entry added</returns>
+        /// <exception cref="ArgumentException">If any if the parameters is null or invalid.
+        /// Only files that are not in the /META-INF may be added</exception>
         public AsiceArchive AddEntry(Stream contentStream, FileRef entry)
         {
             var packageEntry = entry ?? throw new ArgumentNullException(nameof(entry), "Entry must be provided");
@@ -53,7 +65,7 @@ namespace KS.Fiks.ASiC_E.Model
                 throw new ArgumentException("Adding files to META-INF is not allowed.");
             }
 
-            this._entries.Enqueue(CreateEntry(contentStream, new AsicPackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
+            this.entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
             return this;
         }
 
@@ -65,10 +77,12 @@ namespace KS.Fiks.ASiC_E.Model
 
         protected virtual void Dispose(bool dispose)
         {
+            AddManifest();
+
             Archive.Dispose();
         }
 
-        private AsicPackageEntry CreateEntry(Stream contentStream, AsicPackageEntry entry)
+        private AsicePackageEntry CreateEntry(Stream contentStream, AsicePackageEntry entry)
         {
             var fileName = entry.FileName ?? throw new ArgumentNullException(nameof(entry), "File name must be provided");
             var dataStream = contentStream ?? throw new ArgumentNullException(nameof(contentStream));
@@ -88,15 +102,28 @@ namespace KS.Fiks.ASiC_E.Model
         private void AddManifest()
         {
             var manifest = CreateManifest();
+            if (manifest.ManifestSpec == ManifestSpec.Cades)
+            {
+                var signatureFile = SignatureCreator.Create(SignatureCertificate).CreateCadesSignatureFile(manifest);
+                using (var signatureStream = new MemoryStream(signatureFile.Data))
+                {
+                    var entry = Archive.CreateEntry(signatureFile.SignatureFileRef.FileName);
+                    using (var zipEntryStream = entry.Open())
+                    {
+                        signatureStream.CopyTo(zipEntryStream);
+                    }
+                }
+            }
+
             using (var manifestStream = new MemoryStream(manifest.Data))
             {
-                CreateEntry(manifestStream, new AsicPackageEntry(manifest.FileName, MimeType.ForString(AscieConstants.ContentTypeXml), MessageDigestAlgorithm));
+                CreateEntry(manifestStream, new AsicePackageEntry(manifest.FileName, MimeType.ForString(AsiceConstants.ContentTypeXml), MessageDigestAlgorithm));
             }
         }
 
         private ManifestContainer CreateManifest()
         {
-            return this._manifestCreator.CreateManifest(this._entries);
+            return this.manifestCreator.CreateManifest(this.entries);
         }
     }
 }

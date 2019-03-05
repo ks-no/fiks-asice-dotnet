@@ -3,7 +3,8 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-    <Version>1.0.0-dev0046</Version>
+    <VersionPrefix>0.9.9</VersionPrefix>
+    
     <RootNamespace>KS.Fiks.ASiC_E</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Library for handling ASiC-E packages</Title>
@@ -17,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="KS.Fiks.QA" Version="0.9.9-dev-48" PrivateAssets="All" />
+    <PackageReference Include="KS.Fiks.QA" Version="0.9.9-dev-50" PrivateAssets="All" />
     <PackageReference Include="MimeTypes" Version="1.1.0" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.5" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="4.5.2" />
@@ -26,6 +27,7 @@
 
   <ItemGroup>
     <Folder Include="model" />
+    <Folder Include="Packaging" />
     <Folder Include="xsd" />
   </ItemGroup>
 

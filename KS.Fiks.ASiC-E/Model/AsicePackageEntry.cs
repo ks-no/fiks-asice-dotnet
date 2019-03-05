@@ -2,7 +2,7 @@ using System;
 
 namespace KS.Fiks.ASiC_E.Model
 {
-    public class AsicPackageEntry
+    public class AsicePackageEntry
     {
         public string FileName { get; }
 
@@ -12,7 +12,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         public DigestContainer Digest { get; set; }
 
-        public AsicPackageEntry(string fileName, MimeType type, MessageDigestAlgorithm messageDigestAlgorithm)
+        public AsicePackageEntry(string fileName, MimeType type, MessageDigestAlgorithm messageDigestAlgorithm)
         {
             FileName = fileName ?? throw new ArgumentNullException(nameof(fileName));
             Type = type ?? throw new ArgumentNullException(nameof(type));

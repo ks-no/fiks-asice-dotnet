@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Xml;
+using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
 
@@ -8,6 +10,7 @@ namespace KS.Fiks.ASiC_E
     public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
     {
         private readonly AsiceArchive asiceArchive;
+        private ICertificateHolder signatureCertificate;
 
         private AsiceBuilder(AsiceArchive asiceArchive, MessageDigestAlgorithm messageDigestAlgorithm)
         {
@@ -17,7 +20,10 @@ namespace KS.Fiks.ASiC_E
 
         private MessageDigestAlgorithm MessageDigestAlgorithm { get; }
 
-        public static AsiceBuilder Create(Stream stream, MessageDigestAlgorithm messageDigestAlgorithm)
+        public static AsiceBuilder Create(
+            Stream stream,
+            MessageDigestAlgorithm messageDigestAlgorithm,
+            ICertificateHolder signCertificate)
         {
             var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
             var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
@@ -26,7 +32,7 @@ namespace KS.Fiks.ASiC_E
                 throw new ArgumentException("The provided Stream must be writable", nameof(stream));
             }
 
-            return new AsiceBuilder(AsiceArchive.Create(outStream, new CadesManifestCreator()), algorithm);
+            return new AsiceBuilder(AsiceArchive.Create(outStream, new CadesManifestCreator(), signCertificate), algorithm);
         }
 
         public AsiceArchive Build()
@@ -51,9 +57,10 @@ namespace KS.Fiks.ASiC_E
             return this;
         }
 
-        public IAsiceBuilder<AsiceArchive> Sign()
+        public IAsiceBuilder<AsiceArchive> AddSignatureCertificate(ICertificateHolder certificateHolder)
         {
-            throw new NotImplementedException();
+            this.signatureCertificate = certificateHolder;
+            return this;
         }
 
         public void Dispose()

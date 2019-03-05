@@ -1,6 +1,10 @@
 using System;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Reflection;
 using FluentAssertions;
+using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
 using Moq;
 using Xunit;
@@ -13,7 +17,9 @@ namespace KS.Fiks.ASiC_E.Test
         public void TestNotWritableStream()
         {
             var zipStream = new Mock<Stream>();
-            Action createFunction = () => AsiceBuilder.Create(zipStream.Object, MessageDigestAlgorithm.SHA512);
+            var certificate = new Mock<ICertificateHolder>();
+            Action createFunction = () =>
+                AsiceBuilder.Create(zipStream.Object, MessageDigestAlgorithm.SHA512, certificate.Object);
             createFunction.Should().Throw<ArgumentException>();
             zipStream.VerifyGet(s => s.CanWrite);
             zipStream.VerifyNoOtherCalls();
@@ -22,19 +28,51 @@ namespace KS.Fiks.ASiC_E.Test
         [Fact]
         public void TestAddFileStream()
         {
+            byte[] zippedBytes;
+
+            var signingCertificates = TestdataLoader.ReadCertificatesForTest();
             using (var zipStream = new MemoryStream())
             using (var fileStream = new FileStream("small.pdf", FileMode.Open))
             {
-                var asiceBuilder = AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA512);
-                asiceBuilder.Should().NotBeNull();
+                using (var asiceBuilder =
+                    AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
+                {
+                    asiceBuilder.Should().NotBeNull();
 
-                asiceBuilder.AddFile(fileStream).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
+                    asiceBuilder.AddFile(fileStream).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
 
-                var asiceArchive = asiceBuilder.Build();
-                asiceArchive.Should().NotBeNull();
-                var zippedBytes = zipStream.ToArray();
-                zippedBytes.Should().HaveCountGreaterThan(0);
+                    var asiceArchive = asiceBuilder.Build();
+                    asiceArchive.Should().NotBeNull();
+                }
+
+                zippedBytes = zipStream.ToArray();
             }
+
+            zippedBytes.Should().HaveCountGreaterThan(0);
+
+            using (var zipStream = new MemoryStream(zippedBytes))
+            using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+            {
+                zipArchive.Entries.Count.Should().Be(4);
+            }
+        }
+
+        private static byte[] ReadFromResource(string resource)
+        {
+            using (var inputStream = LoadFromAssembly(resource))
+            using (var copyStream = new MemoryStream())
+            {
+                inputStream.CopyTo(copyStream);
+                return copyStream.ToArray();
+            }
+        }
+
+        private static Stream LoadFromAssembly(string resource)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = assembly.GetManifestResourceNames().Single(str =>
+                str.EndsWith(resource, StringComparison.CurrentCulture));
+            return assembly.GetManifestResourceStream(resourceName);
         }
     }
 }
