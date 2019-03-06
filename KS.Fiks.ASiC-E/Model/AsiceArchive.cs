@@ -66,7 +66,7 @@ namespace KS.Fiks.ASiC_E.Model
                 throw new ArgumentException("Adding files to META-INF is not allowed.");
             }
 
-            Log.Debug($"Adding entry '{entry}' to the ASiC-e archive");
+            Log.Debug($"Adding entry '{entry.FileName}' of type '{entry.MimeType}' to the ASiC-e archive");
 
             this.entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
             return this;
