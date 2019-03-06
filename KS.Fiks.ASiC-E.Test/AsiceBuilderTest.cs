@@ -1,8 +1,6 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Reflection;
 using FluentAssertions;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
@@ -32,7 +30,7 @@ namespace KS.Fiks.ASiC_E.Test
 
             var signingCertificates = TestdataLoader.ReadCertificatesForTest();
             using (var zipStream = new MemoryStream())
-            using (var fileStream = new FileStream("small.pdf", FileMode.Open))
+            using (var fileStream = File.OpenRead("small.pdf"))
             {
                 using (var asiceBuilder =
                     AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
@@ -55,24 +53,6 @@ namespace KS.Fiks.ASiC_E.Test
             {
                 zipArchive.Entries.Count.Should().Be(4);
             }
-        }
-
-        private static byte[] ReadFromResource(string resource)
-        {
-            using (var inputStream = LoadFromAssembly(resource))
-            using (var copyStream = new MemoryStream())
-            {
-                inputStream.CopyTo(copyStream);
-                return copyStream.ToArray();
-            }
-        }
-
-        private static Stream LoadFromAssembly(string resource)
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var resourceName = assembly.GetManifestResourceNames().Single(str =>
-                str.EndsWith(resource, StringComparison.CurrentCulture));
-            return assembly.GetManifestResourceStream(resourceName);
         }
     }
 }
