@@ -1,6 +1,7 @@
 using System;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Digests;
+using Org.BouncyCastle.Security;
 
 namespace KS.Fiks.ASiC_E.Model
 {
@@ -17,11 +18,11 @@ namespace KS.Fiks.ASiC_E.Model
                 switch (Name)
                 {
                     case NameSHA512:
-                        return new Sha512Digest();
+                        return DigestUtilities.GetDigest(NameSHA512);
                     case NameSHA384:
-                        return new Sha384Digest();
+                        return DigestUtilities.GetDigest(NameSHA384);
                     default:
-                        return new Sha256Digest();
+                        return DigestUtilities.GetDigest(NameSHA256);
                 }
             }
         }

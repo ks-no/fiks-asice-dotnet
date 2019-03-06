@@ -2,20 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
-using System.Xml.Serialization;
+using Common.Logging;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Sign;
-using KS.Fiks.ASiC_E.Xsd;
 using Org.BouncyCastle.Crypto.IO;
+using Org.BouncyCastle.Security;
 
 namespace KS.Fiks.ASiC_E.Model
 {
     public class AsiceArchive : IDisposable
     {
+        private static readonly ILog Log = LogManager.GetLogger<AsiceArchive>();
+
         private ZipArchive Archive { get;  }
 
         private ICertificateHolder SignatureCertificate { get; }
@@ -36,6 +36,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         public static AsiceArchive Create(Stream zipOutStream, IManifestCreator manifestCreator, ICertificateHolder signatureCertificateHolder)
         {
+            Log.Debug("Creating ASiC-e Zip");
             var zipArchive = new ZipArchive(zipOutStream, ZipArchiveMode.Create, false, Encoding.UTF8);
 
             // Add mimetype entry
@@ -65,6 +66,8 @@ namespace KS.Fiks.ASiC_E.Model
                 throw new ArgumentException("Adding files to META-INF is not allowed.");
             }
 
+            Log.Debug($"Adding entry '{entry}' to the ASiC-e archive");
+
             this.entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
             return this;
         }
@@ -87,13 +90,12 @@ namespace KS.Fiks.ASiC_E.Model
             var fileName = entry.FileName ?? throw new ArgumentNullException(nameof(entry), "File name must be provided");
             var dataStream = contentStream ?? throw new ArgumentNullException(nameof(contentStream));
             var zipEntry = Archive.CreateEntry(fileName);
-            using (var digestStream = new DigestStream(dataStream, MessageDigestAlgorithm.Digest, MessageDigestAlgorithm.Digest))
             using (var zipStream = zipEntry.Open())
+            using (var digestStream = new DigestStream(zipStream, null, MessageDigestAlgorithm.Digest))
             {
-                var digest = new byte[digestStream.WriteDigest().GetDigestSize()];
-                digestStream.CopyTo(zipStream);
-                digestStream.WriteDigest().DoFinal(digest, 0);
-                entry.Digest = new DigestContainer(digest, MessageDigestAlgorithm);
+                dataStream.CopyTo(digestStream);
+                dataStream.Flush();
+                entry.Digest = new DigestContainer(DigestUtilities.DoFinal(digestStream.WriteDigest()), MessageDigestAlgorithm);
             }
 
             return entry;
@@ -101,6 +103,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         private void AddManifest()
         {
+            Log.Debug("Creating manifest");
             var manifest = CreateManifest();
             if (manifest.ManifestSpec == ManifestSpec.Cades)
             {
@@ -119,6 +122,8 @@ namespace KS.Fiks.ASiC_E.Model
             {
                 CreateEntry(manifestStream, new AsicePackageEntry(manifest.FileName, MimeType.ForString(AsiceConstants.ContentTypeXml), MessageDigestAlgorithm));
             }
+
+            Log.Debug("Manifest added to archive");
         }
 
         private ManifestContainer CreateManifest()

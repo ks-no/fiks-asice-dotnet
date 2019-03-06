@@ -3,19 +3,25 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using System.Xml;
-using System.Xml.Serialization;
+using Common.Logging;
 using FluentAssertions;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
-using KS.Fiks.ASiC_E.Xsd;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Model
 {
-    public class AsiceArchiveTest
+    public class AsiceArchiveTest : IClassFixture<LogFixture>
     {
         private const string FileNameTestPdf = "small.pdf";
+        private readonly ILog Log;
+        LogFixture logFixture;
+
+        public AsiceArchiveTest(LogFixture logFixture)
+        {
+            this.logFixture = logFixture;
+            this.Log = logFixture.GetLog<AsiceArchiveTest>();
+        }
 
         [Fact(DisplayName = "Create ASiC-E package")]
         public void CreateArchive()
@@ -64,13 +70,14 @@ namespace KS.Fiks.ASiC_E.Test.Model
 
                     var manifestXml = Encoding.UTF8.GetString(copyStream.ToArray());
                     manifestXml.Should().NotBeNull();
-                    Console.Out.WriteLine("Manifest: {0}", manifestXml);
-
+                    Log.Info($"Manifest: {manifestXml}");
                 }
 
                 var signatureFile = zippedArchive.Entries
-                    .First(e => e.FullName.StartsWith("META-INF") && e.FullName.EndsWith(".p7s"));
+                    .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
+                                e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
                 signatureFile.Should().NotBeNull();
+
                 // Verifies the signature file
                 using (var entryStream = signatureFile.Open())
                 using (var copyStream = new MemoryStream())
@@ -80,6 +87,15 @@ namespace KS.Fiks.ASiC_E.Test.Model
                     signatureContent.Should().HaveCountGreaterThan(0);
                 }
             }
+
+            var tempFileName = Path.GetTempFileName();
+            using (var zippedStream = new MemoryStream(zippedData))
+            using (var outputFileStream = File.OpenWrite(tempFileName))
+            {
+                zippedStream.CopyTo(outputFileStream);
+            }
+
+            Log.Info($"Wrote package to '{tempFileName}'");
         }
     }
 }

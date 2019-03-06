@@ -26,7 +26,7 @@ namespace KS.Fiks.ASiC_E.Sign
 
         public SignatureFileContainer CreateSignatureFile(IEnumerable<AsicePackageEntry> asicPackageEntries)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public SignatureFileContainer CreateCadesSignatureFile(ManifestContainer manifestContainer)
@@ -37,18 +37,23 @@ namespace KS.Fiks.ASiC_E.Sign
                 this.certificateHolder.GetPublicCertificate(),
                 CmsSignedDataGenerator.DigestSha256);
             signedDataGenerator.AddSignerInfoGenerator(CreateSignerInfoGenerator());
+            signedDataGenerator.AddCertificates(X509StoreFactory.Create(
+                "Certificate/Collection",
+                new X509CollectionStoreParameters(new[] { this.certificateHolder.GetPublicCertificate() })));
             var signedData = signedDataGenerator.Generate(new CmsProcessableByteArray(manifestContainer.Data));
             return new SignatureFileContainer(manifestContainer.SignatureFileRef, signedData.GetEncoded());
         }
 
         private SignerInfoGenerator CreateSignerInfoGenerator()
         {
-            return new SignerInfoGeneratorBuilder().Build(CreateContentSigner(), this.certificateHolder.GetPublicCertificate());
+            return new SignerInfoGeneratorBuilder().Build(
+                CreateContentSigner(),
+                this.certificateHolder.GetPublicCertificate());
         }
 
         private Asn1SignatureFactory CreateContentSigner()
         {
-            return new Asn1SignatureFactory("SHA256WithRSA", this.certificateHolder.GetPrivateKey());
+            return new Asn1SignatureFactory(AsiceConstants.SignatureAlgorithm, this.certificateHolder.GetPrivateKey());
         }
     }
 }
