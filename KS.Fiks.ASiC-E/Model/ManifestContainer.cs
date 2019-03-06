@@ -4,7 +4,7 @@ namespace KS.Fiks.ASiC_E.Model
     {
         public string FileName { get; }
 
-        public SignatureFileRef SignatureFileRef { get; }
+        public SignatureFileRef SignatureFileRef { get; set; }
 
         public byte[] Data { get; }
 

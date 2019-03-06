@@ -6,29 +6,51 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 using KS.Fiks.ASiC_E.Model;
+using KS.Fiks.ASiC_E.Sign;
 using KS.Fiks.ASiC_E.Xsd;
 
 namespace KS.Fiks.ASiC_E.Manifest
 {
-    public class CadesManifestCreator : AbstractManifestCreator
+    public class CadesManifestCreator : IManifestCreator
     {
-        public const string FILENAME = "META-INF/asicmanifest.xml";
+        public const string Filename = "META-INF/asicmanifest.xml";
         private static readonly Encoding Encoding = Encoding.UTF8;
 
-        public override ManifestContainer CreateManifest(IEnumerable<AsicePackageEntry> entries)
+        private readonly bool addSignatureFile;
+
+        private CadesManifestCreator(bool addSignatureFile)
         {
-            var signatureFileRef = CreateSignatureRef();
-            var manifest = new ASiCManifestType();
-            manifest.DataObjectReference = entries.Select(ToDataObject).ToArray();
-            manifest.SigReference = new SigReferenceType
+            this.addSignatureFile = addSignatureFile;
+        }
+
+        public static CadesManifestCreator CreateWithSignatureFile()
+        {
+            return new CadesManifestCreator(true);
+        }
+
+        public static CadesManifestCreator CreateWithoutSignatureFile()
+        {
+            return new CadesManifestCreator(false);
+        }
+
+        public ManifestContainer CreateManifest(IEnumerable<AsicePackageEntry> entries)
+        {
+            var manifest = new ASiCManifestType { DataObjectReference = entries.Select(ToDataObject).ToArray() };
+            SignatureFileRef signatureFileRef = null;
+            if (addSignatureFile)
             {
-                MimeType = signatureFileRef.MimeType.ToString(), URI = signatureFileRef.FileName
-            };
+                signatureFileRef = CadesSignature.CreateSignatureRef();
+                manifest.SigReference = new SigReferenceType
+                {
+                    MimeType = signatureFileRef.MimeType.ToString(), URI = signatureFileRef.FileName
+                };
+            }
+
             using (var outStream = new MemoryStream())
             using (var xmlWriter = CreateXmlWriter(outStream))
             {
                 new XmlSerializer(typeof(ASiCManifestType)).Serialize(xmlWriter, manifest, CreateNamespaces());
-                return new ManifestContainer(FILENAME, outStream.ToArray(), signatureFileRef, ManifestSpec.Cades);
+                return new ManifestContainer(Filename, outStream.ToArray(), signatureFileRef, ManifestSpec.Cades);
             }
         }
 

@@ -6,22 +6,29 @@ namespace KS.Fiks.ASiC_E.Test
 {
     public class LogFixture : IDisposable
     {
-        private readonly ILoggerFactoryAdapter Adapter;
+        private readonly ILoggerFactoryAdapter adapter;
+
         public LogFixture()
         {
-            this.Adapter = new DebugLoggerFactoryAdapter
+            this.adapter = new DebugLoggerFactoryAdapter
             {
                 Level = LogLevel.All, ShowLevel = true, ShowLogName = true, ShowDateTime = true
             };
-            LogManager.Adapter = this.Adapter;
+            LogManager.Adapter = this.adapter;
         }
 
         public ILog GetLog<T>()
         {
-            return Adapter.GetLogger(typeof(T));
+            return this.adapter.GetLogger(typeof(T));
         }
-        
+
         public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool dispose)
         {
             LogManager.Reset();
         }

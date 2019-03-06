@@ -10,7 +10,6 @@ namespace KS.Fiks.ASiC_E
     public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
     {
         private readonly AsiceArchive asiceArchive;
-        private ICertificateHolder signatureCertificate;
 
         private AsiceBuilder(AsiceArchive asiceArchive, MessageDigestAlgorithm messageDigestAlgorithm)
         {
@@ -20,6 +19,14 @@ namespace KS.Fiks.ASiC_E
 
         private MessageDigestAlgorithm MessageDigestAlgorithm { get; }
 
+        /// <summary>
+        /// Create builder
+        /// </summary>
+        /// <param name="stream">The stream where the ASiC-E data will be written. Can not be null and must be writable</param>
+        /// <param name="messageDigestAlgorithm">The digest algorithm to use. Not nullable</param>
+        /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
+        /// <returns>A builder that may be used to construct a ASiC-E package</returns>
+        /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
         public static AsiceBuilder Create(
             Stream stream,
             MessageDigestAlgorithm messageDigestAlgorithm,
@@ -32,7 +39,10 @@ namespace KS.Fiks.ASiC_E
                 throw new ArgumentException("The provided Stream must be writable", nameof(stream));
             }
 
-            return new AsiceBuilder(AsiceArchive.Create(outStream, new CadesManifestCreator(), signCertificate), algorithm);
+            var cadesManifestCreator = signCertificate == null
+                ? CadesManifestCreator.CreateWithoutSignatureFile()
+                : CadesManifestCreator.CreateWithSignatureFile();
+            return new AsiceBuilder(AsiceArchive.Create(outStream, cadesManifestCreator, signCertificate), algorithm);
         }
 
         public AsiceArchive Build()
@@ -54,12 +64,6 @@ namespace KS.Fiks.ASiC_E
         public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType)
         {
             this.asiceArchive.AddEntry(stream, new FileRef(filename, mimeType));
-            return this;
-        }
-
-        public IAsiceBuilder<AsiceArchive> AddSignatureCertificate(ICertificateHolder certificateHolder)
-        {
-            this.signatureCertificate = certificateHolder;
             return this;
         }
 

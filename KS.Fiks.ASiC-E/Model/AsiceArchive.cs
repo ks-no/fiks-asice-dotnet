@@ -16,9 +16,9 @@ namespace KS.Fiks.ASiC_E.Model
     {
         private static readonly ILog Log = LogManager.GetLogger<AsiceArchive>();
 
-        private ZipArchive Archive { get;  }
-
         private ICertificateHolder SignatureCertificate { get; }
+
+        private ZipArchive Archive { get;  }
 
         private readonly Queue<AsicePackageEntry> entries = new Queue<AsicePackageEntry>();
 
@@ -105,9 +105,10 @@ namespace KS.Fiks.ASiC_E.Model
         {
             Log.Debug("Creating manifest");
             var manifest = CreateManifest();
-            if (manifest.ManifestSpec == ManifestSpec.Cades)
+            if (manifest.ManifestSpec == ManifestSpec.Cades && manifest.SignatureFileRef != null)
             {
                 var signatureFile = SignatureCreator.Create(SignatureCertificate).CreateCadesSignatureFile(manifest);
+                manifest.SignatureFileRef = signatureFile.SignatureFileRef;
                 using (var signatureStream = new MemoryStream(signatureFile.Data))
                 {
                     var entry = Archive.CreateEntry(signatureFile.SignatureFileRef.FileName);
