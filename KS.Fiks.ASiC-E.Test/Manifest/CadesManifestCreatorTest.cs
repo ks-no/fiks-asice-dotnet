@@ -61,7 +61,7 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             {
                 var xmlSerializer = new XmlSerializer(typeof(ASiCManifestType));
                 var xmlObj = xmlSerializer.Deserialize(xmlStream);
-                return (ASiCManifestType) xmlObj;
+                return (ASiCManifestType)xmlObj;
             }
         }
     }
