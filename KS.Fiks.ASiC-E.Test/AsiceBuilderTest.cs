@@ -9,8 +9,16 @@ using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test
 {
-    public class AsiceBuilderTest
+    public class AsiceBuilderTest : IClassFixture<LogFixture>
     {
+
+        private readonly LogFixture logFixture;
+
+        public AsiceBuilderTest(LogFixture logFixture)
+        {
+            this.logFixture = logFixture;
+        }
+
         [Fact(DisplayName = "Try to create builder using non-writable stream")]
         public void TestNotWritableStream()
         {
@@ -46,6 +54,7 @@ namespace KS.Fiks.ASiC_E.Test
                 zippedBytes = zipStream.ToArray();
             }
 
+            this.logFixture.GetLog<AsiceBuilderTest>().Info($"Created zip containing {zippedBytes.Length} bytes");
             zippedBytes.Should().HaveCountGreaterThan(0);
 
             using (var zipStream = new MemoryStream(zippedBytes))
