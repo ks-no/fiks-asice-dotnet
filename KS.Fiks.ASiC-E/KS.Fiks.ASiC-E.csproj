@@ -13,6 +13,7 @@
     <PackageProjectUrl>https://github.com/ks-no/fiks-asice-dotnet</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/ks-no/fiks-asice-dotnet/raw/master/LICENSE</PackageLicenseUrl>
     <RepositoryUrl>git@github.com:ks-no/fiks-asice-dotnet.git</RepositoryUrl>
+    <PackageIconUrl>https://ks-no.github.io/images/favicon.png</PackageIconUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
   </PropertyGroup>
