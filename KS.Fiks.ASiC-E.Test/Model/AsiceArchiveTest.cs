@@ -50,7 +50,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
             {
                 zippedArchive.Entries.Should().HaveCount(4);
                 zippedArchive.Entries.First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture)).Should().NotBeNull();
-                zippedArchive.Entries.First(e => e.FullName.Equals(CadesManifestCreator.Filename, StringComparison.CurrentCulture)).Should().NotBeNull();
+                zippedArchive.Entries.First(e => e.FullName.Equals(AsiceConstants.CadesManifestFilename, StringComparison.CurrentCulture)).Should().NotBeNull();
                 zippedArchive.Entries.First(e => e.FullName.Equals(AsiceConstants.FileNameMimeType, StringComparison.CurrentCulture)).Should()
                     .NotBeNull();
 
@@ -63,7 +63,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 }
 
                 // Verifies that a CADES manifest has been generated
-                using (var entryStream = zippedArchive.GetEntry(CadesManifestCreator.Filename).Open())
+                using (var entryStream = zippedArchive.GetEntry(AsiceConstants.CadesManifestFilename).Open())
                 using (var copyStream = new MemoryStream())
                 {
                     entryStream.CopyTo(copyStream);

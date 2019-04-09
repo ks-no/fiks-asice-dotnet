@@ -13,7 +13,6 @@ namespace KS.Fiks.ASiC_E.Manifest
 {
     public class CadesManifestCreator : IManifestCreator
     {
-        public const string Filename = "META-INF/asicmanifest.xml";
         private static readonly Encoding Encoding = Encoding.UTF8;
 
         private readonly bool addSignatureFile;
@@ -50,7 +49,7 @@ namespace KS.Fiks.ASiC_E.Manifest
             using (var xmlWriter = CreateXmlWriter(outStream))
             {
                 new XmlSerializer(typeof(ASiCManifestType)).Serialize(xmlWriter, manifest, CreateNamespaces());
-                return new ManifestContainer(Filename, outStream.ToArray(), signatureFileRef, ManifestSpec.Cades);
+                return new ManifestContainer(AsiceConstants.CadesManifestFilename, outStream.ToArray(), signatureFileRef, ManifestSpec.Cades);
             }
         }
 

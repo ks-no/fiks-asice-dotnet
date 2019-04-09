@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ConstrainedExecution;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Security;
@@ -33,9 +34,32 @@ namespace KS.Fiks.ASiC_E.Model
             Uri = uri ?? throw new ArgumentNullException(nameof(uri));
         }
 
-        public static readonly MessageDigestAlgorithm SHA256 = new MessageDigestAlgorithm(NameSHA256, new Uri(UriStringSHA256));
-        public static readonly MessageDigestAlgorithm SHA384 = new MessageDigestAlgorithm(NameSHA384, new Uri(UriStringSHA384));
-        public static readonly MessageDigestAlgorithm SHA512 = new MessageDigestAlgorithm(NameSHA512, new Uri(UriStringSHA512));
+        public static readonly Uri UriSHA256 = new Uri(UriStringSHA256);
+        public static readonly Uri UriSHA384 = new Uri(UriStringSHA384);
+        public static readonly Uri UriSHA512 = new Uri(UriStringSHA512);
+        public static readonly MessageDigestAlgorithm SHA256 = new MessageDigestAlgorithm(NameSHA256, UriSHA256);
+        public static readonly MessageDigestAlgorithm SHA384 = new MessageDigestAlgorithm(NameSHA384, UriSHA384);
+        public static readonly MessageDigestAlgorithm SHA512 = new MessageDigestAlgorithm(NameSHA512, UriSHA512);
+
+        public static MessageDigestAlgorithm FromUri(Uri uri)
+        {
+            if (uri == null)
+            {
+                return null;
+            }
+
+            switch (uri.ToString())
+            {
+                case UriStringSHA256:
+                    return SHA256;
+                case UriStringSHA384:
+                    return SHA384;
+                case UriStringSHA512:
+                    return SHA512;
+                default:
+                    return null;
+            }
+        }
 
         private const string NameSHA256 = "SHA-256";
         private const string NameSHA384 = "SHA-384";

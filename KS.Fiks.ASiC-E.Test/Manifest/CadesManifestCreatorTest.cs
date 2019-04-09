@@ -24,7 +24,7 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
                 .And
                 .BeOfType<ManifestContainer>();
             manifest.Data.Should().NotBeNull();
-            manifest.FileName.Should().Be(CadesManifestCreator.Filename);
+            manifest.FileName.Should().Be(AsiceConstants.CadesManifestFilename);
 
             var xmlManifest = DeserializeManifest(manifest.Data);
             xmlManifest.Should().NotBeNull();
@@ -47,7 +47,7 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             manifest.Should().NotBeNull()
                 .And
                 .BeOfType<ManifestContainer>();
-            manifest.FileName.Should().Be(CadesManifestCreator.Filename);
+            manifest.FileName.Should().Be(AsiceConstants.CadesManifestFilename);
             var xmlManifest = DeserializeManifest(manifest.Data);
             xmlManifest.Should().NotBeNull();
             xmlManifest.SigReference.Should().NotBeNull();
