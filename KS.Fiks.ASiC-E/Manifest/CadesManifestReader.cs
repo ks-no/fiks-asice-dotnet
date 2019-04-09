@@ -12,7 +12,7 @@ namespace KS.Fiks.ASiC_E.Manifest
         {
             using (var xmlReader = XmlReader.Create(stream))
             {
-                var manifest = (ASiCManifestType) new XmlSerializer(typeof(ASiCManifestType)).Deserialize(xmlReader);
+                var manifest = (ASiCManifestType)new XmlSerializer(typeof(ASiCManifestType)).Deserialize(xmlReader);
                 return new CadesManifest(manifest);
             }
         }

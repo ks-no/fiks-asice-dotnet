@@ -10,7 +10,7 @@ namespace KS.Fiks.ASiC_E.Model
         public const string FileNameSignatureFile = "META-INF/signatures.xml";
         public const string FileNameMimeType = "mimetype";
         public const string SignatureAlgorithm = "SHA256WithRSA";
-        public static readonly MimeType MimeTypeCadesSignature = MimeType.ForString(ContentTypeSignature);
         public const string CadesManifestFilename = "META-INF/asicmanifest.xml";
+        public static readonly MimeType MimeTypeCadesSignature = MimeType.ForString(ContentTypeSignature);
     }
 }

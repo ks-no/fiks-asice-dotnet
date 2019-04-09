@@ -9,6 +9,7 @@ namespace KS.Fiks.ASiC_E.Model
     public class CadesManifest : AbstractManifest
     {
         public SignatureFileContainer SignatureFile { get; set; }
+
         private readonly ASiCManifestType _asiCManifestType;
 
         public string SignatureFileName => this._asiCManifestType?.SigReference?.URI;

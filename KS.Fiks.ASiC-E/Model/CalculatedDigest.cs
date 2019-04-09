@@ -23,7 +23,6 @@ namespace KS.Fiks.ASiC_E.Model
         {
             return MessageDigestAlgorithm == calculatedDigest.MessageDigestAlgorithm &&
                    DigestEquals(calculatedDigest.Digest);
-
         }
 
         private bool DigestEquals(IEnumerable<byte> digest)

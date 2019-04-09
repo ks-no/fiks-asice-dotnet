@@ -25,11 +25,8 @@ namespace KS.Fiks.ASiC_E.Test.Model
                         Action createAction = () => AscieReadModel.Create(readArchive, MessageDigestAlgorithm.SHA256);
                         createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
                     }
-
                 }
-
             }
-
         }
 
         [Fact(DisplayName = "Read non-empty Zip that is missing the required first entry")]
@@ -53,9 +50,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                         Action createAction = () => AscieReadModel.Create(readArchive, MessageDigestAlgorithm.SHA512);
                         createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
                     }
-
                 }
-
             }
         }
 
@@ -82,9 +77,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                         asiceArchive.Entries.Count().Should().Be(0);
                         asiceArchive.CadesManifest.Should().BeNull();
                     }
-
                 }
-
             }
         }
 
@@ -98,11 +91,10 @@ namespace KS.Fiks.ASiC_E.Test.Model
             using (var outputStream = new MemoryStream())
             {
                 using (var textFileStream = new MemoryStream(Encoding.UTF8.GetBytes(content)))
-                using (var asiceBuilder = AsiceBuilder.Create(outputStream, MessageDigestAlgorithm.SHA256, signingCertificates))                   
+                using (var asiceBuilder = AsiceBuilder.Create(outputStream, MessageDigestAlgorithm.SHA256, signingCertificates))
                 {
                     asiceBuilder.AddFile(textFileStream, contentFile, MimeType.ForString("text/plain"));
                     asiceBuilder.Build().Should().NotBeNull();
-
                 }
 
                 using (var readStream = new MemoryStream(outputStream.ToArray()))
@@ -117,10 +109,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                     cadesManifest.Digests.Count().Should().Be(1);
                     cadesManifest.SignatureFileName.Should().NotBeNull();
                 }
-
             }
-
         }
-
     }
 }

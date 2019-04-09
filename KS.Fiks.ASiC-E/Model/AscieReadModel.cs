@@ -21,7 +21,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         public IEnumerable<AsiceReadEntry> Entries =>
             this._zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
-                .Where(entry => ! entry.FullName.StartsWith("META-INF/"))
+                .Where(entry => ! entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
                 .Select(entry => new AsiceReadEntry(entry, this._digestAlgorithm));
 
         public CadesManifest CadesManifest => GetCadesManifest();
@@ -34,6 +34,7 @@ namespace KS.Fiks.ASiC_E.Model
             {
                 throw new ArgumentException($"Archive is not a valid ASiC-E archive as the first entry is not '{AsiceConstants.FileNameMimeType}'", nameof(zipArchive));
             }
+
             var digestAlg = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
 
             return new AscieReadModel(asicArchive, digestAlg);
@@ -43,6 +44,11 @@ namespace KS.Fiks.ASiC_E.Model
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool dispose)
+        {
+            // TODO: verify signature
         }
 
         private CadesManifest GetCadesManifest()
@@ -62,12 +68,7 @@ namespace KS.Fiks.ASiC_E.Model
         private ZipArchiveEntry GetEntry(string fullEntryName)
         {
             return _zipArchive.Entries.SingleOrDefault(entry =>
-                entry.FullName.Equals(AsiceConstants.CadesManifestFilename, StringComparison.CurrentCultureIgnoreCase));
-        }
-
-        protected virtual void Dispose(bool dispose)
-        {
-            // TODO: verify signature
+                entry.FullName.Equals(fullEntryName, StringComparison.CurrentCultureIgnoreCase));
         }
     }
 }
