@@ -106,8 +106,21 @@ namespace KS.Fiks.ASiC_E.Test.Model
                     var cadesManifest = asicePackage.CadesManifest;
                     cadesManifest.Should().NotBeNull();
 
-                    cadesManifest.Digests.Count().Should().Be(1);
+                    cadesManifest.Digests.Count.Should().Be(1);
+                    asicePackage.DigestVerifier.Should().NotBeNull();
                     cadesManifest.SignatureFileName.Should().NotBeNull();
+
+                    var firstEntry = entries.First();
+                    using (var entryStream = firstEntry.OpenStream())
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        entryStream.CopyTo(memoryStream);
+                        Encoding.UTF8.GetString(memoryStream.ToArray()).Should().Be(content);
+                    }
+
+                    var verificationResult = asicePackage.DigestVerifier.Verification();
+                    verificationResult.Should().NotBeNull();
+                    verificationResult.AllValid.Should().BeTrue();
                 }
             }
         }

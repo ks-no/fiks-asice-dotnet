@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace KS.Fiks.ASiC_E.Model
 {
     using System;
@@ -14,9 +16,13 @@ namespace KS.Fiks.ASiC_E.Model
         public SignatureFileRef SignatureFileRef =>
             this.SignatureFileName == null ? null : new SignatureFileRef(SignatureFileName);
 
-        public IEnumerable<CalculatedDigest> Digests =>
-            this._asiCManifestType?.DataObjectReference?.Select(d =>
-                new CalculatedDigest(d.DigestValue, MessageDigestAlgorithm.FromUri(new Uri(d.DigestMethod.Algorithm))));
+        public IDictionary<string, DeclaredDigest> Digests =>
+            this._asiCManifestType?.DataObjectReference?
+                .ToImmutableDictionary(
+                    d => d.URI,
+                    d => new DeclaredDigest(
+                        d.DigestValue,
+                        MessageDigestAlgorithm.FromUri(new Uri(d.DigestMethod.Algorithm))));
 
         public CadesManifest(ASiCManifestType asiCManifestType) : base(ManifestSpec.Cades)
         {

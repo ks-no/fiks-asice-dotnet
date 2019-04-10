@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using KS.Fiks.ASiC_E.Crypto;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.IO;
 
@@ -10,22 +11,20 @@ namespace KS.Fiks.ASiC_E.Model
     {
         private readonly ZipArchiveEntry _zipArchiveEntry;
         private readonly MessageDigestAlgorithm _digestAlgorithm;
-        private IDigest _digest;
+        private readonly IDigestReceiver _digestReceiver;
 
-        public AsiceReadEntry(ZipArchiveEntry zipArchiveEntry, MessageDigestAlgorithm digestAlgorithm)
+        public AsiceReadEntry(ZipArchiveEntry zipArchiveEntry, MessageDigestAlgorithm digestAlgorithm, IDigestReceiver digestReceiver)
         {
-            _zipArchiveEntry = zipArchiveEntry ?? throw new ArgumentNullException(nameof(zipArchiveEntry));
-            _digestAlgorithm = digestAlgorithm ?? throw new ArgumentNullException(nameof(digestAlgorithm));
+            this._zipArchiveEntry = zipArchiveEntry ?? throw new ArgumentNullException(nameof(zipArchiveEntry));
+            this._digestAlgorithm = digestAlgorithm ?? throw new ArgumentNullException(nameof(digestAlgorithm));
+            this._digestReceiver = digestReceiver;
         }
 
         public string FileName => _zipArchiveEntry.Name;
 
-        public string Digest => _digest?.ToString();
-
         public Stream OpenStream()
         {
-            this._digest = this._digestAlgorithm.Digest;
-            return new DigestStream(this._zipArchiveEntry.Open(), this._digest, null);
+            return new DigestReadStream(this._zipArchiveEntry.Open(), FileName, this._digestAlgorithm, this._digestReceiver);
         }
     }
 }

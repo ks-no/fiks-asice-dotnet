@@ -4,9 +4,11 @@ namespace KS.Fiks.ASiC_E.Model
 {
     public abstract class AbstractManifest
     {
-        protected readonly ManifestSpec _manifestSpec;
+        private readonly ManifestSpec _manifestSpec;
 
-        public AbstractManifest(ManifestSpec manifestSpec)
+        public ManifestSpec Spec => this._manifestSpec;
+
+        protected AbstractManifest(ManifestSpec manifestSpec)
         {
             this._manifestSpec = manifestSpec;
         }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Linq;
+using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 
 namespace KS.Fiks.ASiC_E.Model
@@ -11,20 +11,27 @@ namespace KS.Fiks.ASiC_E.Model
     {
         private readonly ZipArchive _zipArchive;
         private readonly MessageDigestAlgorithm _digestAlgorithm;
-        private readonly IDictionary<string, string> _calculatedDigest = ImmutableDictionary.Create<string, string>();
+        private readonly DigestVerifier _digestVerifier;
 
         private AscieReadModel(ZipArchive zipArchive, MessageDigestAlgorithm digestAlgorithm)
         {
             this._zipArchive = zipArchive;
             this._digestAlgorithm = digestAlgorithm;
+
+            this.CadesManifest = GetCadesManifest();
+            if (CadesManifest != null)
+            {
+                this._digestVerifier = Crypto.DigestVerifier.Create(CadesManifest.Digests);
+            }
+
+            this.Entries = GetAsiceEntries();
         }
 
-        public IEnumerable<AsiceReadEntry> Entries =>
-            this._zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
-                .Where(entry => ! entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
-                .Select(entry => new AsiceReadEntry(entry, this._digestAlgorithm));
+        public IEnumerable<AsiceReadEntry> Entries { get; }
 
-        public CadesManifest CadesManifest => GetCadesManifest();
+        public CadesManifest CadesManifest { get; }
+
+        public IDigestVerifier DigestVerifier => this._digestVerifier;
 
         public static AscieReadModel Create(ZipArchive zipArchive, MessageDigestAlgorithm messageDigestAlgorithm)
         {
@@ -49,6 +56,13 @@ namespace KS.Fiks.ASiC_E.Model
         protected virtual void Dispose(bool dispose)
         {
             // TODO: verify signature
+        }
+
+        private IEnumerable<AsiceReadEntry> GetAsiceEntries()
+        {
+            return this._zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
+                .Where(entry => ! entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
+                .Select(entry => new AsiceReadEntry(entry, this._digestAlgorithm, this._digestVerifier));
         }
 
         private CadesManifest GetCadesManifest()
