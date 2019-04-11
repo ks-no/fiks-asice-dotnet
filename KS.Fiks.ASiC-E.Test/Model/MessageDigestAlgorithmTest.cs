@@ -30,19 +30,19 @@ namespace KS.Fiks.ASiC_E.Test.Model
         [Fact(DisplayName = "Test that the static field UriSHA256 is initialized")]
         public void Uri256()
         {
-            MessageDigestAlgorithm.UriSHA256.Should().NotBeNull();
+            MessageDigestAlgorithm.UriSHA256XmlEnc.Should().NotBeNull();
         }
 
         [Fact(DisplayName = "Test that the static field UriSHA384 is initialized")]
         public void Uri384()
         {
-            MessageDigestAlgorithm.UriSHA384.Should().NotBeNull();
+            MessageDigestAlgorithm.UriSHA384XmlEnc.Should().NotBeNull();
         }
 
         [Fact(DisplayName = "Test that the static field UriSHA512 is initialized")]
         public void Uri512()
         {
-            MessageDigestAlgorithm.UriSHA512.Should().NotBeNull();
+            MessageDigestAlgorithm.UriSHA512XmlEnc.Should().NotBeNull();
         }
     }
 }

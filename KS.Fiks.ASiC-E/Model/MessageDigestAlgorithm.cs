@@ -34,12 +34,15 @@ namespace KS.Fiks.ASiC_E.Model
             Uri = uri ?? throw new ArgumentNullException(nameof(uri));
         }
 
-        public static readonly Uri UriSHA256 = new Uri(UriStringSHA256);
-        public static readonly Uri UriSHA384 = new Uri(UriStringSHA384);
-        public static readonly Uri UriSHA512 = new Uri(UriStringSHA512);
-        public static readonly MessageDigestAlgorithm SHA256 = new MessageDigestAlgorithm(NameSHA256, UriSHA256);
-        public static readonly MessageDigestAlgorithm SHA384 = new MessageDigestAlgorithm(NameSHA384, UriSHA384);
-        public static readonly MessageDigestAlgorithm SHA512 = new MessageDigestAlgorithm(NameSHA512, UriSHA512);
+        public static readonly Uri UriSHA256XmlEnc = new Uri(UriStringSha256XmlEnc);
+        public static readonly Uri UriSHA256XmlDsig = new Uri(UriStringSha256XmlDsig);
+        public static readonly Uri UriSHA384XmlEnc = new Uri(UriStringSha384XmlEnc);
+        public static readonly Uri UriSHA384XmlDsig = new Uri(UriStringSha384XmlDsig);
+        public static readonly Uri UriSHA512XmlEnc = new Uri(UriStringSHA512XmlEnc);
+        public static readonly Uri UriSHA512XmlDsig = new Uri(UriStringSHA512XmlDsig);
+        public static readonly MessageDigestAlgorithm SHA256 = new MessageDigestAlgorithm(NameSHA256, UriSHA256XmlDsig);
+        public static readonly MessageDigestAlgorithm SHA384 = new MessageDigestAlgorithm(NameSHA384, UriSHA384XmlDsig);
+        public static readonly MessageDigestAlgorithm SHA512 = new MessageDigestAlgorithm(NameSHA512, UriSHA512XmlDsig);
 
         public static MessageDigestAlgorithm FromUri(Uri uri)
         {
@@ -50,11 +53,14 @@ namespace KS.Fiks.ASiC_E.Model
 
             switch (uri.ToString())
             {
-                case UriStringSHA256:
+                case UriStringSha256XmlEnc:
+                case UriStringSha256XmlDsig:
                     return SHA256;
-                case UriStringSHA384:
+                case UriStringSha384XmlEnc:
+                case UriStringSha384XmlDsig:
                     return SHA384;
-                case UriStringSHA512:
+                case UriStringSHA512XmlEnc:
+                case UriStringSHA512XmlDsig:
                     return SHA512;
                 default:
                     return null;
@@ -64,8 +70,11 @@ namespace KS.Fiks.ASiC_E.Model
         private const string NameSHA256 = "SHA-256";
         private const string NameSHA384 = "SHA-384";
         private const string NameSHA512 = "SHA-512";
-        private const string UriStringSHA256 = "http://www.w3.org/2001/04/xmlenc#sha256";
-        private const string UriStringSHA384 = "http://www.w3.org/2001/04/xmlenc#sha384";
-        private const string UriStringSHA512 = "http://www.w3.org/2001/04/xmlenc#sha512";
+        private const string UriStringSha256XmlDsig = "http://www.w3.org/2000/09/xmldsig#sha256";
+        private const string UriStringSha256XmlEnc = "http://www.w3.org/2001/04/xmlenc#sha256";
+        private const string UriStringSha384XmlDsig = "http://www.w3.org/2000/09/xmldsig#sha384";
+        private const string UriStringSha384XmlEnc = "http://www.w3.org/2001/04/xmlenc#sha384";
+        private const string UriStringSHA512XmlDsig = "http://www.w3.org/2000/09/xmldsig#sha512";
+        private const string UriStringSHA512XmlEnc = "http://www.w3.org/2001/04/xmlenc#sha512";
     }
 }

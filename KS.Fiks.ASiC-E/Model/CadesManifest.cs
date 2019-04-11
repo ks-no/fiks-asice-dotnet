@@ -16,17 +16,17 @@ namespace KS.Fiks.ASiC_E.Model
         public SignatureFileRef SignatureFileRef =>
             this.SignatureFileName == null ? null : new SignatureFileRef(SignatureFileName);
 
-        public IDictionary<string, DeclaredDigest> Digests =>
-            this._asiCManifestType?.DataObjectReference?
+        public IDictionary<string, DeclaredDigest> Digests { get; }
+
+        public CadesManifest(ASiCManifestType asiCManifestType) : base(ManifestSpec.Cades)
+        {
+            this._asiCManifestType = asiCManifestType ?? throw new ArgumentNullException(nameof(asiCManifestType));
+            Digests = this._asiCManifestType?.DataObjectReference?
                 .ToImmutableDictionary(
                     d => d.URI,
                     d => new DeclaredDigest(
                         d.DigestValue,
                         MessageDigestAlgorithm.FromUri(new Uri(d.DigestMethod.Algorithm))));
-
-        public CadesManifest(ASiCManifestType asiCManifestType) : base(ManifestSpec.Cades)
-        {
-            this._asiCManifestType = asiCManifestType ?? throw new ArgumentNullException(nameof(asiCManifestType));
         }
     }
 }

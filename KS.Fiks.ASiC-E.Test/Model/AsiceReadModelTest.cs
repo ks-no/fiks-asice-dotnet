@@ -2,9 +2,11 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using FluentAssertions;
 using KS.Fiks.ASiC_E.Model;
+using KS.Fiks.ASiC_E.Xsd;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Model
@@ -22,7 +24,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
-                        Action createAction = () => AscieReadModel.Create(readArchive, MessageDigestAlgorithm.SHA256);
+                        Action createAction = () => AscieReadModel.Create(readArchive);
                         createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
                     }
                 }
@@ -47,7 +49,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
-                        Action createAction = () => AscieReadModel.Create(readArchive, MessageDigestAlgorithm.SHA512);
+                        Action createAction = () => AscieReadModel.Create(readArchive);
                         createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
                     }
                 }
@@ -72,11 +74,35 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
-                        var asiceArchive = AscieReadModel.Create(readArchive, MessageDigestAlgorithm.SHA256);
+                        var asiceArchive = AscieReadModel.Create(readArchive);
                         asiceArchive.Should().NotBeNull();
                         asiceArchive.Entries.Count().Should().Be(0);
                         asiceArchive.CadesManifest.Should().BeNull();
                     }
+                }
+            }
+        }
+
+        [Fact(DisplayName = "Read ASiC-E package from resource")]
+        public void ReadAsiceResource()
+        {
+            using (var asicStream = TestDataUtil.ReadValidAsiceCadesFromResource())
+            {
+                using (var zip = new ZipArchive(asicStream, ZipArchiveMode.Read))
+                using (var asice = AscieReadModel.Create(zip))
+                {
+                    asice.CadesManifest.Should().NotBeNull();
+                    foreach (var asiceReadEntry in asice.Entries)
+                    {
+                        using (var entryStream = asiceReadEntry.OpenStream())
+                        using (var bufferStream = new MemoryStream())
+                        {
+                            entryStream.CopyTo(bufferStream);
+                            bufferStream.Position.Should().BeGreaterThan(0);
+                        }
+                    }
+
+                    asice.DigestVerifier.Verification().AllValid.Should().BeTrue();
                 }
             }
         }
@@ -100,7 +126,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 using (var readStream = new MemoryStream(outputStream.ToArray()))
                 using (var zip = new ZipArchive(readStream))
                 {
-                    var asicePackage = AscieReadModel.Create(zip, MessageDigestAlgorithm.SHA256);
+                    var asicePackage = AscieReadModel.Create(zip);
                     var entries = asicePackage.Entries;
                     entries.Count().Should().Be(1);
                     var cadesManifest = asicePackage.CadesManifest;
@@ -124,5 +150,6 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 }
             }
         }
+
     }
 }

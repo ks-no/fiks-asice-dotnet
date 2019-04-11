@@ -10,13 +10,11 @@ namespace KS.Fiks.ASiC_E.Model
     public class AscieReadModel : IDisposable
     {
         private readonly ZipArchive _zipArchive;
-        private readonly MessageDigestAlgorithm _digestAlgorithm;
         private readonly DigestVerifier _digestVerifier;
 
-        private AscieReadModel(ZipArchive zipArchive, MessageDigestAlgorithm digestAlgorithm)
+        private AscieReadModel(ZipArchive zipArchive)
         {
             this._zipArchive = zipArchive;
-            this._digestAlgorithm = digestAlgorithm;
 
             this.CadesManifest = GetCadesManifest();
             if (CadesManifest != null)
@@ -33,18 +31,20 @@ namespace KS.Fiks.ASiC_E.Model
 
         public IDigestVerifier DigestVerifier => this._digestVerifier;
 
-        public static AscieReadModel Create(ZipArchive zipArchive, MessageDigestAlgorithm messageDigestAlgorithm)
+        public static AscieReadModel Create(ZipArchive zipArchive)
         {
             var asicArchive = zipArchive ?? throw new ArgumentNullException(nameof(zipArchive));
+            if (zipArchive.Mode != ZipArchiveMode.Read)
+            {
+                throw new ArgumentException("The provided ZipArchive should be in READ mode", nameof(zipArchive));
+            }
             var firstEntry = asicArchive.Entries.FirstOrDefault();
             if (firstEntry == null || firstEntry.FullName != AsiceConstants.FileNameMimeType)
             {
                 throw new ArgumentException($"Archive is not a valid ASiC-E archive as the first entry is not '{AsiceConstants.FileNameMimeType}'", nameof(zipArchive));
             }
 
-            var digestAlg = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
-
-            return new AscieReadModel(asicArchive, digestAlg);
+            return new AscieReadModel(asicArchive);
         }
 
         public void Dispose()
@@ -56,13 +56,25 @@ namespace KS.Fiks.ASiC_E.Model
         protected virtual void Dispose(bool dispose)
         {
             // TODO: verify signature
+            this._zipArchive.Dispose();
         }
 
         private IEnumerable<AsiceReadEntry> GetAsiceEntries()
         {
             return this._zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
                 .Where(entry => ! entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
-                .Select(entry => new AsiceReadEntry(entry, this._digestAlgorithm, this._digestVerifier));
+                .Select(entry => new AsiceReadEntry(entry, LookupMessageDigestAlgorithmForEntry(entry.FullName), this._digestVerifier));
+        }
+
+        private MessageDigestAlgorithm LookupMessageDigestAlgorithmForEntry(string fullEntryName)
+        {
+            var declaredDigest = CadesManifest?.Digests[fullEntryName];
+            if (declaredDigest == null)
+            {
+                throw new DigestVerificationException($"Could not find declared digest method for entry '{fullEntryName}'");
+            }
+
+            return declaredDigest.MessageDigestAlgorithm;
         }
 
         private CadesManifest GetCadesManifest()
