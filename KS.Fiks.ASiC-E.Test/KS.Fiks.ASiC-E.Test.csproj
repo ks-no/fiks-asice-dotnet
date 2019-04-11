@@ -12,7 +12,7 @@
     <PackageReference Include="Common.Logging.Core" Version="3.4.1" />
     <PackageReference Include="KS.Fiks.QA" Version="1.0.0-dev-69" PrivateAssets="All" />
     <PackageReference Include="FluentAssertions" Version="5.6.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
     <PackageReference Include="Moq" Version="4.10.1" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
@@ -35,6 +35,18 @@
     </EmbeddedResource>
     <None Remove="fiks_demo_public.pem" />
     <EmbeddedResource Include="fiks_demo_public.pem">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="resources\cades-valid.asice" />
+    <EmbeddedResource Include="resources\cades-valid.asice">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="resources\xades-external-dss.asice" />
+    <EmbeddedResource Include="resources\xades-external-dss.asice">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="resources\xades-external-sdp.asice" />
+    <EmbeddedResource Include="resources\xades-external-sdp.asice">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
