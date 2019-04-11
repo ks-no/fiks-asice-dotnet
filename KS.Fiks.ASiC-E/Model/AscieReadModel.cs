@@ -38,6 +38,7 @@ namespace KS.Fiks.ASiC_E.Model
             {
                 throw new ArgumentException("The provided ZipArchive should be in READ mode", nameof(zipArchive));
             }
+
             var firstEntry = asicArchive.Entries.FirstOrDefault();
             if (firstEntry == null || firstEntry.FullName != AsiceConstants.FileNameMimeType)
             {

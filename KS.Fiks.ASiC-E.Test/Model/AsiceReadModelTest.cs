@@ -150,6 +150,5 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 }
             }
         }
-
     }
 }

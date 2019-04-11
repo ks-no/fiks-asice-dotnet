@@ -17,11 +17,11 @@ namespace KS.Fiks.ASiC_E.Test
                 asice.Should().NotBeNull();
                 foreach (var asiceReadEntry in asice.Entries)
                 {
-                    using(var entryStream = asiceReadEntry.OpenStream())
+                    using (var entryStream = asiceReadEntry.OpenStream())
                     using (var bufferStream = new MemoryStream())
                     {
                         entryStream.CopyTo(bufferStream);
-                        bufferStream.ToArray().Count().Should().BeGreaterThan(0);                       
+                        bufferStream.ToArray().Count().Should().BeGreaterThan(0);
                     }
                 }
 
