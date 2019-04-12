@@ -2,7 +2,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
     <VersionPrefix>0.9.9</VersionPrefix>
     
     <RootNamespace>KS.Fiks.ASiC_E</RootNamespace>
@@ -16,6 +15,7 @@
     <PackageIconUrl>https://ks-no.github.io/images/favicon.png</PackageIconUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
