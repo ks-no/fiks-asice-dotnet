@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Common.Logging;
 using KS.Fiks.ASiC_E.Model;
+using NLog;
 
 namespace KS.Fiks.ASiC_E.Crypto
 {
     public class DigestVerifier : IDigestReceiver, IDigestVerifier
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(DigestVerifier));
+        private static readonly Logger _log = LogManager.GetCurrentClassLogger();
         private readonly IDictionary<string, DeclaredDigest> _declaredDigests;
         private readonly Queue<string> _validFiles = new Queue<string>();
         private readonly Queue<string> _invalidFiles = new Queue<string>();
@@ -27,24 +27,24 @@ namespace KS.Fiks.ASiC_E.Crypto
 
         public void ReceiveDigest(string fileName, byte[] digest)
         {
-            _log.Debug(CultureInfo.CurrentCulture, m => m("Got digest for file '{0}'", fileName));
+            _log.Debug(CultureInfo.CurrentCulture, "Got digest for file {fileName}", fileName);
             var declaredDigest = _declaredDigests[fileName];
             if (declaredDigest != null)
             {
                 if (declaredDigest.Digest.SequenceEqual(digest))
                 {
-                    _log.Debug(CultureInfo.CurrentCulture, m => m("Digest verified for file '{0}'", fileName));
+                    _log.Debug(CultureInfo.CurrentCulture, "Digest verified for file {fileName}", fileName);
                     this._validFiles.Enqueue(fileName);
                 }
                 else
                 {
-                    _log.Debug(CultureInfo.CurrentCulture, m => m("Digest did not match the declared digest for file '{0}'", fileName));
+                    _log.Debug(CultureInfo.CurrentCulture, "Digest did not match the declared digest for file {fileName}", fileName);
                     this._invalidFiles.Enqueue(fileName);
                 }
             }
             else
             {
-                _log.Debug(CultureInfo.CurrentCulture, m => m("No file named '{0}' has been declared. It will be deemed invalid"));
+                _log.Debug(CultureInfo.CurrentCulture, "No file named {fileName} has been declared. It will be deemed invalid", fileName);
                 this._invalidFiles.Enqueue(fileName);
             }
         }

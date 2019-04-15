@@ -3,10 +3,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using Common.Logging;
 using FluentAssertions;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using NLog;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Model
@@ -14,7 +14,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
     public class AsiceArchiveTest : IClassFixture<LogFixture>
     {
         private const string FileNameTestPdf = "small.pdf";
-        private readonly ILog log;
+        private readonly Logger log;
         private LogFixture logFixture;
 
         public AsiceArchiveTest(LogFixture logFixture)

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
-using Common.Logging;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Sign;
+using NLog;
 using Org.BouncyCastle.Crypto.IO;
 using Org.BouncyCastle.Security;
 
@@ -14,7 +14,7 @@ namespace KS.Fiks.ASiC_E.Model
 {
     public class AsiceArchive : IDisposable
     {
-        private static readonly ILog Log = LogManager.GetLogger<AsiceArchive>();
+        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
         private ICertificateHolder SignatureCertificate { get; }
 

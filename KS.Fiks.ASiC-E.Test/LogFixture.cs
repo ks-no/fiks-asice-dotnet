@@ -1,25 +1,32 @@
 using System;
-using Common.Logging;
-using Common.Logging.Simple;
+using System.Text;
+using NLog;
+using NLog.Config;
+using NLog.Layouts;
+using NLog.Targets;
 
 namespace KS.Fiks.ASiC_E.Test
 {
     public class LogFixture : IDisposable
     {
-        private readonly ILoggerFactoryAdapter adapter;
 
         public LogFixture()
         {
-            this.adapter = new DebugLoggerFactoryAdapter
+            var nlogConfig = new LoggingConfiguration();
+            nlogConfig.AddTarget("console", new ConsoleTarget
             {
-                Level = LogLevel.All, ShowLevel = true, ShowLogName = true, ShowDateTime = true
-            };
-            LogManager.Adapter = this.adapter;
+                Name = "Console",
+                Encoding = Encoding.UTF8,
+                Layout = Layout.FromString("${date}|${level:uppercase=true}|${message} ${exception:format=tostring}|${logger}|${all-event-properties}")
+            });
+            nlogConfig.AddRuleForAllLevels("console");
+            LogManager.Configuration = nlogConfig;
+            LogManager.ReconfigExistingLoggers();
         }
 
-        public ILog GetLog<T>()
+        public Logger GetLog<T>()
         {
-            return this.adapter.GetLogger(typeof(T));
+            return LogManager.GetLogger(typeof(T).Name);
         }
 
         public void Dispose()
@@ -30,7 +37,7 @@ namespace KS.Fiks.ASiC_E.Test
 
         protected virtual void Dispose(bool dispose)
         {
-            LogManager.Reset();
+            LogManager.Shutdown();
         }
     }
 }
