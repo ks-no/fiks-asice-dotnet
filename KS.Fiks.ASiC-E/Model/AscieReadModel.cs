@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
@@ -16,18 +17,27 @@ namespace KS.Fiks.ASiC_E.Model
         {
             this._zipArchive = zipArchive;
 
-            this.CadesManifest = GetCadesManifest();
-            if (CadesManifest != null)
+            CadesManifest = GetCadesManifest();
+
+            Entries = GetAsiceEntries();
+
+            Signatures = ExtractSignaturesFromManifest();
+
+            var declaredDigests = Manifest?.getDeclaredDigests();
+            if (declaredDigests != null)
             {
-                this._digestVerifier = Crypto.DigestVerifier.Create(CadesManifest.Digests);
+                this._digestVerifier = Crypto.DigestVerifier.Create(declaredDigests);
             }
 
-            this.Entries = GetAsiceEntries();
         }
 
         public IEnumerable<AsiceReadEntry> Entries { get; }
 
         public CadesManifest CadesManifest { get; }
+
+        private AbstractManifest Manifest => CadesManifest;
+
+        public Signatures Signatures { get; }
 
         public IDigestVerifier DigestVerifier => this._digestVerifier;
 
@@ -42,7 +52,9 @@ namespace KS.Fiks.ASiC_E.Model
             var firstEntry = asicArchive.Entries.FirstOrDefault();
             if (firstEntry == null || firstEntry.FullName != AsiceConstants.FileNameMimeType)
             {
-                throw new ArgumentException($"Archive is not a valid ASiC-E archive as the first entry is not '{AsiceConstants.FileNameMimeType}'", nameof(zipArchive));
+                throw new ArgumentException(
+                    $"Archive is not a valid ASiC-E archive as the first entry is not '{AsiceConstants.FileNameMimeType}'",
+                    nameof(zipArchive));
             }
 
             return new AscieReadModel(asicArchive);
@@ -63,8 +75,9 @@ namespace KS.Fiks.ASiC_E.Model
         private IEnumerable<AsiceReadEntry> GetAsiceEntries()
         {
             return this._zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
-                .Where(entry => ! entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
-                .Select(entry => new AsiceReadEntry(entry, LookupMessageDigestAlgorithmForEntry(entry.FullName), this._digestVerifier));
+                .Where(entry => !entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
+                .Select(entry => new AsiceReadEntry(entry, LookupMessageDigestAlgorithmForEntry(entry.FullName),
+                    this._digestVerifier));
         }
 
         private MessageDigestAlgorithm LookupMessageDigestAlgorithmForEntry(string fullEntryName)
@@ -72,7 +85,8 @@ namespace KS.Fiks.ASiC_E.Model
             var declaredDigest = CadesManifest?.Digests[fullEntryName];
             if (declaredDigest == null)
             {
-                throw new DigestVerificationException($"Could not find declared digest method for entry '{fullEntryName}'");
+                throw new DigestVerificationException(
+                    $"Could not find declared digest method for entry '{fullEntryName}'");
             }
 
             return declaredDigest.MessageDigestAlgorithm;
@@ -96,6 +110,29 @@ namespace KS.Fiks.ASiC_E.Model
         {
             return _zipArchive.Entries.SingleOrDefault(entry =>
                 entry.FullName.Equals(fullEntryName, StringComparison.CurrentCultureIgnoreCase));
+        }
+
+        private byte[] GetDataForEntry(string fullEntryName)
+        {
+            var zipArchiveEntry = GetEntry(fullEntryName);
+            if (zipArchiveEntry == null)
+            {
+                return null;
+            }
+
+            using (var zipStream = zipArchiveEntry.Open())
+            using (var bufferStream = new MemoryStream())
+            {
+                zipStream.CopyTo(bufferStream);
+                return bufferStream.ToArray();
+            }
+        }
+
+        private Signatures ExtractSignaturesFromManifest()
+        {
+            var signatures = Manifest?.getSignatureRefs()
+                .Select(s => new SignatureFileContainer(s, GetDataForEntry(s.FileName)));
+            return signatures == null ? null : new Signatures(signatures);
         }
     }
 }

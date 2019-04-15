@@ -92,6 +92,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 using (var asice = AscieReadModel.Create(zip))
                 {
                     asice.CadesManifest.Should().NotBeNull();
+                    asice.Signatures.Should().NotBeNull();
                     foreach (var asiceReadEntry in asice.Entries)
                     {
                         using (var entryStream = asiceReadEntry.OpenStream())
@@ -135,6 +136,8 @@ namespace KS.Fiks.ASiC_E.Test.Model
                     cadesManifest.Digests.Count.Should().Be(1);
                     asicePackage.DigestVerifier.Should().NotBeNull();
                     cadesManifest.SignatureFileName.Should().NotBeNull();
+                    asicePackage.Signatures.Should().NotBeNull();
+                    asicePackage.Signatures.Containers.Count().Should().Be(1);
 
                     var firstEntry = entries.First();
                     using (var entryStream = firstEntry.OpenStream())

@@ -18,6 +18,16 @@ namespace KS.Fiks.ASiC_E.Model
 
         public IDictionary<string, DeclaredDigest> Digests { get; }
 
+        public override IEnumerable<SignatureFileRef> getSignatureRefs()
+        {
+            return SignatureFileRef == null ? Enumerable.Empty<SignatureFileRef>() : ImmutableList.Create(SignatureFileRef);
+        }
+
+        public override IDictionary<string, DeclaredDigest> getDeclaredDigests()
+        {
+            return Digests;
+        }
+
         public CadesManifest(ASiCManifestType asiCManifestType) : base(ManifestSpec.Cades)
         {
             this._asiCManifestType = asiCManifestType ?? throw new ArgumentNullException(nameof(asiCManifestType));
