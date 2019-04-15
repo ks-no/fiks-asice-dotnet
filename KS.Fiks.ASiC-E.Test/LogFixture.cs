@@ -9,16 +9,21 @@ namespace KS.Fiks.ASiC_E.Test
 {
     public class LogFixture : IDisposable
     {
+        private const string LogLayout =
+            "${date}|${level:uppercase=true}|${message} ${exception:format=tostring}|${logger}|${all-event-properties}";
 
         public LogFixture()
         {
             var nlogConfig = new LoggingConfiguration();
-            nlogConfig.AddTarget("console", new ConsoleTarget
+            var target = new ConsoleTarget
             {
                 Name = "Console",
                 Encoding = Encoding.UTF8,
-                Layout = Layout.FromString("${date}|${level:uppercase=true}|${message} ${exception:format=tostring}|${logger}|${all-event-properties}")
-            });
+                Layout = Layout.FromString(LogLayout)
+            };
+            nlogConfig.AddTarget(
+                "console",
+                target);
             nlogConfig.AddRuleForAllLevels("console");
             LogManager.Configuration = nlogConfig;
             LogManager.ReconfigExistingLoggers();
@@ -26,7 +31,7 @@ namespace KS.Fiks.ASiC_E.Test
 
         public Logger GetLog<T>()
         {
-            return LogManager.GetLogger(typeof(T).Name);
+            return LogManager.GetLogger(typeof(T).FullName);
         }
 
         public void Dispose()
