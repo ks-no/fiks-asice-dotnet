@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
 using Org.BouncyCastle.Cms;
@@ -10,7 +11,8 @@ namespace KS.Fiks.ASiC_E.Sign
 {
     public class SignatureCreator : ISignatureCreator
     {
-        private ICertificateHolder certificateHolder;
+        private const string X509StoreType = "Certificate/Collection";
+        private readonly ICertificateHolder certificateHolder;
 
         private SignatureCreator(ICertificateHolder certificateHolder)
         {
@@ -36,14 +38,15 @@ namespace KS.Fiks.ASiC_E.Sign
                 CmsSignedDataGenerator.DigestSha256);
             signedDataGenerator.AddSignerInfoGenerator(CreateSignerInfoGenerator());
             signedDataGenerator.AddCertificates(CreateX509Store());
-            var signedData = signedDataGenerator.Generate(new CmsProcessableByteArray(manifestContainer.Data));
+            var signedData =
+                signedDataGenerator.Generate(new CmsProcessableByteArray(manifestContainer.Data.ToArray()));
             return new SignatureFileContainer(manifestContainer.SignatureFileRef, signedData.GetEncoded());
         }
 
         private IX509Store CreateX509Store()
         {
             return X509StoreFactory.Create(
-                "Certificate/Collection",
+                X509StoreType,
                 new X509CollectionStoreParameters(new[] { this.certificateHolder.GetPublicCertificate() }));
         }
 

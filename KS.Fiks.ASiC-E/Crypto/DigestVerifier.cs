@@ -10,16 +10,16 @@ namespace KS.Fiks.ASiC_E.Crypto
     public class DigestVerifier : IDigestReceiver, IDigestVerifier
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-        private readonly IDictionary<string, DeclaredDigest> _declaredDigests;
+        private readonly IDictionary<string, DeclaredDigestFile> _declaredDigests;
         private readonly Queue<string> _validFiles = new Queue<string>();
         private readonly Queue<string> _invalidFiles = new Queue<string>();
 
-        private DigestVerifier(IDictionary<string, DeclaredDigest> declaredDigests)
+        private DigestVerifier(IDictionary<string, DeclaredDigestFile> declaredDigests)
         {
             this._declaredDigests = declaredDigests ?? throw new ArgumentNullException(nameof(declaredDigests));
         }
 
-        public static DigestVerifier Create(IDictionary<string, DeclaredDigest> declaredDigests)
+        public static DigestVerifier Create(IDictionary<string, DeclaredDigestFile> declaredDigests)
         {
             var dd = declaredDigests ?? throw new ArgumentNullException(nameof(declaredDigests));
             return new DigestVerifier(dd);

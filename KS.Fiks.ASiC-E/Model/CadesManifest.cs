@@ -16,14 +16,18 @@ namespace KS.Fiks.ASiC_E.Model
         public SignatureFileRef SignatureFileRef =>
             this.SignatureFileName == null ? null : new SignatureFileRef(SignatureFileName);
 
-        public IDictionary<string, DeclaredDigest> Digests { get; }
+        public IDictionary<string, DeclaredDigestFile> Digests { get; }
 
-        public override IEnumerable<SignatureFileRef> getSignatureRefs()
+        public string RootFile { get; }
+
+        public override IEnumerable<SignatureFileRef> GetSignatureRefs()
         {
-            return SignatureFileRef == null ? Enumerable.Empty<SignatureFileRef>() : ImmutableList.Create(SignatureFileRef);
+            return SignatureFileRef == null
+                ? Enumerable.Empty<SignatureFileRef>()
+                : ImmutableList.Create(SignatureFileRef);
         }
 
-        public override IDictionary<string, DeclaredDigest> getDeclaredDigests()
+        public override IDictionary<string, DeclaredDigestFile> GetDeclaredDigests()
         {
             return Digests;
         }
@@ -34,9 +38,12 @@ namespace KS.Fiks.ASiC_E.Model
             Digests = this._asiCManifestType?.DataObjectReference?
                 .ToImmutableDictionary(
                     d => d.URI,
-                    d => new DeclaredDigest(
+                    d => new DeclaredDigestFile(
                         d.DigestValue,
-                        MessageDigestAlgorithm.FromUri(new Uri(d.DigestMethod.Algorithm))));
+                        MessageDigestAlgorithm.FromUri(new Uri(d.DigestMethod.Algorithm)),
+                        d.URI,
+                        MimeType.ForString(d.MimeType)));
+            RootFile = asiCManifestType.DataObjectReference?.Where(d => d.Rootfile).Select(d => d.URI).FirstOrDefault();
         }
     }
 }

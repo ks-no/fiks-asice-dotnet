@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Xml.Serialization;
 using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
 using FluentAssertions;
@@ -26,7 +27,7 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             manifest.Data.Should().NotBeNull();
             manifest.FileName.Should().Be(AsiceConstants.CadesManifestFilename);
 
-            var xmlManifest = DeserializeManifest(manifest.Data);
+            var xmlManifest = DeserializeManifest(manifest.Data.ToArray());
             xmlManifest.Should().NotBeNull();
             xmlManifest.SigReference.Should().BeNull();
             xmlManifest.DataObjectReference.Should().HaveCount(1);
@@ -48,7 +49,7 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
                 .And
                 .BeOfType<ManifestContainer>();
             manifest.FileName.Should().Be(AsiceConstants.CadesManifestFilename);
-            var xmlManifest = DeserializeManifest(manifest.Data);
+            var xmlManifest = DeserializeManifest(manifest.Data.ToArray());
             xmlManifest.Should().NotBeNull();
             xmlManifest.SigReference.Should().NotBeNull();
             xmlManifest.SigReference.MimeType.Should().Be(AsiceConstants.ContentTypeSignature);

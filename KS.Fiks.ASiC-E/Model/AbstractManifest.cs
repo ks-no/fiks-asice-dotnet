@@ -9,9 +9,9 @@ namespace KS.Fiks.ASiC_E.Model
 
         public ManifestSpec Spec => this._manifestSpec;
 
-        public abstract IEnumerable<SignatureFileRef> getSignatureRefs();
+        public abstract IEnumerable<SignatureFileRef> GetSignatureRefs();
 
-        public abstract IDictionary<string, DeclaredDigest> getDeclaredDigests();
+        public abstract IDictionary<string, DeclaredDigestFile> GetDeclaredDigests();
 
         protected AbstractManifest(ManifestSpec manifestSpec)
         {

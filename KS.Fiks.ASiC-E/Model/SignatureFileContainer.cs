@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace KS.Fiks.ASiC_E.Model
 {
@@ -6,9 +7,9 @@ namespace KS.Fiks.ASiC_E.Model
     {
         public SignatureFileRef SignatureFileRef { get; }
 
-        public byte[] Data { get; }
+        public IEnumerable<byte> Data { get; }
 
-        public SignatureFileContainer(SignatureFileRef signatureFileRef, byte[] data)
+        public SignatureFileContainer(SignatureFileRef signatureFileRef, IEnumerable<byte> data)
         {
             SignatureFileRef = signatureFileRef ?? throw new ArgumentNullException(nameof(signatureFileRef));
             Data = data ?? throw new ArgumentNullException(nameof(data));

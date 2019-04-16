@@ -49,6 +49,14 @@
     <EmbeddedResource Include="resources\xades-external-sdp.asice">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Sign\signature.p7s" />
+    <EmbeddedResource Include="Sign\signature.p7s">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Sign\signedData.xml" />
+    <EmbeddedResource Include="Sign\signedData.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

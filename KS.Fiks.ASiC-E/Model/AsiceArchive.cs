@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
@@ -109,7 +110,7 @@ namespace KS.Fiks.ASiC_E.Model
             {
                 var signatureFile = SignatureCreator.Create(SignatureCertificate).CreateCadesSignatureFile(manifest);
                 manifest.SignatureFileRef = signatureFile.SignatureFileRef;
-                using (var signatureStream = new MemoryStream(signatureFile.Data))
+                using (var signatureStream = new MemoryStream(signatureFile.Data.ToArray()))
                 {
                     var entry = Archive.CreateEntry(signatureFile.SignatureFileRef.FileName);
                     using (var zipEntryStream = entry.Open())
@@ -119,7 +120,7 @@ namespace KS.Fiks.ASiC_E.Model
                 }
             }
 
-            using (var manifestStream = new MemoryStream(manifest.Data))
+            using (var manifestStream = new MemoryStream(manifest.Data.ToArray()))
             {
                 CreateEntry(manifestStream, new AsicePackageEntry(manifest.FileName, MimeType.ForString(AsiceConstants.ContentTypeXml), MessageDigestAlgorithm));
             }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ASiCManifest xmlns="http://uri.etsi.org/2918/v1.2.1#" xmlns:ns2="http://www.w3.org/2000/09/xmldsig#">
+    <SigReference URI="META-INF/signature-f741f40a-bfa5-477b-83ca-384ae074e002.p7s" MimeType="application/x-pkcs7-signature"/>
+    <DataObjectReference URI="bii-envelope.xml" MimeType="text/xml">
+        <ns2:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256"/>
+        <ns2:DigestValue>8A8ScSgd289FuAlzNX70A9LkpUu8wcseYTiSS1GESZc=</ns2:DigestValue>
+    </DataObjectReference>
+    <DataObjectReference URI="bii-message.xml" MimeType="application/xml">
+        <ns2:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256"/>
+        <ns2:DigestValue>U+i/R1Sa/OqRASwozga2MCGDR8wd/7ZUGztmsm2kl50=</ns2:DigestValue>
+    </DataObjectReference>
+</ASiCManifest>

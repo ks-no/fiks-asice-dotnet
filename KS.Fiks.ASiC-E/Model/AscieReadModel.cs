@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
+using KS.Fiks.ASiC_E.Sign;
+using KS.Fiks.ASiC_E.Xsd;
 
 namespace KS.Fiks.ASiC_E.Model
 {
@@ -23,23 +26,22 @@ namespace KS.Fiks.ASiC_E.Model
 
             Signatures = ExtractSignaturesFromManifest();
 
-            var declaredDigests = Manifest?.getDeclaredDigests();
+            var declaredDigests = Manifest?.GetDeclaredDigests();
             if (declaredDigests != null)
             {
                 this._digestVerifier = Crypto.DigestVerifier.Create(declaredDigests);
             }
-
         }
 
         public IEnumerable<AsiceReadEntry> Entries { get; }
 
         public CadesManifest CadesManifest { get; }
 
-        private AbstractManifest Manifest => CadesManifest;
-
         public Signatures Signatures { get; }
 
         public IDigestVerifier DigestVerifier => this._digestVerifier;
+
+        private AbstractManifest Manifest => CadesManifest;
 
         public static AscieReadModel Create(ZipArchive zipArchive)
         {
@@ -60,6 +62,31 @@ namespace KS.Fiks.ASiC_E.Model
             return new AscieReadModel(asicArchive);
         }
 
+        public asicManifest VerifiedManifest()
+        {
+            if (Signatures?.Containers?.FirstOrDefault() != null && CadesManifest != null)
+            {
+                var certificate =
+                    new SignatureVerifier().Validate(
+                        GetCadesManifestBlob(),
+                        Signatures.Containers.FirstOrDefault().Data.ToArray());
+                return new asicManifest
+                {
+                    certificate = new[] { certificate },
+                    file = CadesManifest.Digests.Select(d => new asicFile
+                    {
+                        digest = d.Value.Digest.ToArray(),
+                        mimetype = d.Value.MimeType.ToString(),
+                        name = d.Value.Name,
+                        verified = true
+                    }).ToArray(),
+                    rootfile = CadesManifest.RootFile
+                };
+            }
+
+            return null;
+        }
+
         public void Dispose()
         {
             Dispose(true);
@@ -76,7 +103,9 @@ namespace KS.Fiks.ASiC_E.Model
         {
             return this._zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
                 .Where(entry => !entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
-                .Select(entry => new AsiceReadEntry(entry, LookupMessageDigestAlgorithmForEntry(entry.FullName),
+                .Select(entry => new AsiceReadEntry(
+                    entry,
+                    this.LookupMessageDigestAlgorithmForEntry(entry.FullName),
                     this._digestVerifier));
         }
 
@@ -92,9 +121,14 @@ namespace KS.Fiks.ASiC_E.Model
             return declaredDigest.MessageDigestAlgorithm;
         }
 
+        private byte[] GetCadesManifestBlob()
+        {
+            return GetDataForEntry(AsiceConstants.CadesManifestFilename);
+        }
+
         private CadesManifest GetCadesManifest()
         {
-            var cadesManifestEntry = GetEntry(AsiceConstants.CadesManifestFilename);
+            var cadesManifestEntry = GetCadesManifestEntry();
             if (cadesManifestEntry == null)
             {
                 return null;
@@ -104,6 +138,11 @@ namespace KS.Fiks.ASiC_E.Model
             {
                 return new CadesManifestReader().FromStream(entryStream);
             }
+        }
+
+        private ZipArchiveEntry GetCadesManifestEntry()
+        {
+            return GetEntry(AsiceConstants.CadesManifestFilename);
         }
 
         private ZipArchiveEntry GetEntry(string fullEntryName)
@@ -130,7 +169,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         private Signatures ExtractSignaturesFromManifest()
         {
-            var signatures = Manifest?.getSignatureRefs()
+            var signatures = Manifest?.GetSignatureRefs()
                 .Select(s => new SignatureFileContainer(s, GetDataForEntry(s.FileName)));
             return signatures == null ? null : new Signatures(signatures);
         }

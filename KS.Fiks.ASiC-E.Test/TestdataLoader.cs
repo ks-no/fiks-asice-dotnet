@@ -14,6 +14,16 @@ namespace KS.Fiks.ASiC_E.Test
             return PreloadedCertificateHolder.Create(ReadPublicKey(), ReadPrivateKey());
         }
 
+        public static byte[] ReadFromResource(string resource)
+        {
+            using (var inputStream = LoadFromAssembly(resource))
+            using (var copyStream = new MemoryStream())
+            {
+                inputStream.CopyTo(copyStream);
+                return copyStream.ToArray();
+            }
+        }
+
         private static byte[] ReadPrivateKey()
         {
             return ReadFromResource("fiks_demo_private.pem");
@@ -22,16 +32,6 @@ namespace KS.Fiks.ASiC_E.Test
         private static byte[] ReadPublicKey()
         {
             return ReadFromResource("fiks_demo_public.pem");
-        }
-
-        private static byte[] ReadFromResource(string resource)
-        {
-            using (var inputStream = LoadFromAssembly(resource))
-            using (var copyStream = new MemoryStream())
-            {
-                inputStream.CopyTo(copyStream);
-                return copyStream.ToArray();
-            }
         }
 
         private static Stream LoadFromAssembly(string resource)
