@@ -15,3 +15,46 @@ Currently implements:
 TODO:
 * support for specifying OASIS manifest 
 * support XAdES signatures
+
+## Examples
+### Create ASiC-E package containing single file
+```c#
+using (var outStream = // create outstream)
+using (var fileStream = // open FileStream )
+{
+    using (var asiceBuilder =
+        AsiceBuilder.Create(outStream, MessageDigestAlgorithm.SHA256, signingCertificates))
+    {
+        asiceBuilder.AddFile(fileStream)
+
+        var asiceArchive = asiceBuilder.Build();
+        // archive is created, at this point the data will have been flushed to the outStream
+    }
+}
+```
+### Read data from ASiC-E
+```c#
+IAsicReader reader = new AsiceReader();
+using (var inputStream = // ASiC-E package to read)
+using (var asice = reader.Read(inputStream))
+{
+    foreach (var asiceReadEntry in asice.Entries)
+    {
+        using (var entryStream = asiceReadEntry.OpenStream())
+        using (var outStream = // stream to output the data to)
+        {
+            entryStream.CopyTo(bufferStream);
+        }
+    }
+
+    // Check that all digests declared in the manifest are valid
+    if(asice.DigestVerifier.Verification().AllValid) 
+    {
+        // Do something
+    } 
+    else
+    {
+        // Handle error
+    }
+}
+```
