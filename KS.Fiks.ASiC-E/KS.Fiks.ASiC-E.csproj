@@ -16,6 +16,8 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
     <TargetFramework>netcoreapp2.2</TargetFramework>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
