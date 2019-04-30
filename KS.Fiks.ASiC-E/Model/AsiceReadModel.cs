@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -11,12 +10,12 @@ using KS.Fiks.ASiC_E.Xsd;
 
 namespace KS.Fiks.ASiC_E.Model
 {
-    public class AscieReadModel : IDisposable
+    public class AsiceReadModel : IDisposable
     {
         private readonly ZipArchive _zipArchive;
         private readonly DigestVerifier _digestVerifier;
 
-        private AscieReadModel(ZipArchive zipArchive)
+        private AsiceReadModel(ZipArchive zipArchive)
         {
             this._zipArchive = zipArchive;
 
@@ -43,7 +42,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         private AbstractManifest Manifest => CadesManifest;
 
-        public static AscieReadModel Create(ZipArchive zipArchive)
+        public static AsiceReadModel Create(ZipArchive zipArchive)
         {
             var asicArchive = zipArchive ?? throw new ArgumentNullException(nameof(zipArchive));
             if (zipArchive.Mode != ZipArchiveMode.Read)
@@ -59,7 +58,7 @@ namespace KS.Fiks.ASiC_E.Model
                     nameof(zipArchive));
             }
 
-            return new AscieReadModel(asicArchive);
+            return new AsiceReadModel(asicArchive);
         }
 
         public asicManifest VerifiedManifest()

@@ -24,7 +24,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
-                        Action createAction = () => AscieReadModel.Create(readArchive);
+                        Action createAction = () => AsiceReadModel.Create(readArchive);
                         createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
                     }
                 }
@@ -49,7 +49,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
-                        Action createAction = () => AscieReadModel.Create(readArchive);
+                        Action createAction = () => AsiceReadModel.Create(readArchive);
                         createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
                     }
                 }
@@ -74,7 +74,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
-                        var asiceArchive = AscieReadModel.Create(readArchive);
+                        var asiceArchive = AsiceReadModel.Create(readArchive);
                         asiceArchive.Should().NotBeNull();
                         asiceArchive.Entries.Count().Should().Be(0);
                         asiceArchive.CadesManifest.Should().BeNull();
@@ -89,7 +89,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
             using (var asicStream = TestDataUtil.ReadValidAsiceCadesFromResource())
             {
                 using (var zip = new ZipArchive(asicStream, ZipArchiveMode.Read))
-                using (var asice = AscieReadModel.Create(zip))
+                using (var asice = AsiceReadModel.Create(zip))
                 {
                     asice.CadesManifest.Should().NotBeNull();
                     asice.Signatures.Should().NotBeNull();
@@ -127,7 +127,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 using (var readStream = new MemoryStream(outputStream.ToArray()))
                 using (var zip = new ZipArchive(readStream))
                 {
-                    var asicePackage = AscieReadModel.Create(zip);
+                    var asicePackage = AsiceReadModel.Create(zip);
                     var entries = asicePackage.Entries;
                     entries.Count().Should().Be(1);
                     var cadesManifest = asicePackage.CadesManifest;

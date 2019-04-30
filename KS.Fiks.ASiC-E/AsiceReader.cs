@@ -6,10 +6,10 @@ namespace KS.Fiks.ASiC_E
 {
     public class AsiceReader : IAsicReader
     {
-        public AscieReadModel Read(Stream inputStream)
+        public AsiceReadModel Read(Stream inputStream)
         {
             var zipArchive = new ZipArchive(inputStream, ZipArchiveMode.Read);
-            return AscieReadModel.Create(zipArchive);
+            return AsiceReadModel.Create(zipArchive);
         }
     }
 }
