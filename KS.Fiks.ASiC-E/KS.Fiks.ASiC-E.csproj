@@ -15,7 +15,7 @@
     <PackageIconUrl>https://ks-no.github.io/images/favicon.png</PackageIconUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netcoreapp2.2</TargetFrameworks>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
@@ -25,6 +25,7 @@
     <PackageReference Include="MimeTypes" Version="1.1.0" />
     <PackageReference Include="NLog" Version="4.6.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.5" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
     
   </ItemGroup>
 

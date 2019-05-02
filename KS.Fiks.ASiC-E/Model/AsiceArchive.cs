@@ -45,7 +45,8 @@ namespace KS.Fiks.ASiC_E.Model
 
             using (var stream = zipArchiveEntry.Open())
             {
-                stream.Write(Encoding.UTF8.GetBytes(AsiceConstants.ContentTypeASiCe));
+                var contentAsBytes = Encoding.UTF8.GetBytes(AsiceConstants.ContentTypeASiCe);
+                stream.Write(contentAsBytes, 0, contentAsBytes.Length);
             }
 
             return new AsiceArchive(zipArchive, manifestCreator, MessageDigestAlgorithm.SHA256, signatureCertificateHolder);
