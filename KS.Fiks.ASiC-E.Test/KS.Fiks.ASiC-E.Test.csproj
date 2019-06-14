@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="KS.Fiks.QA" Version="1.0.0-dev-69" PrivateAssets="All" />
+    <PackageReference Include="KS.Fiks.QA" Version="1.0.0" PrivateAssets="All" />
     <PackageReference Include="FluentAssertions" Version="5.6.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
     <PackageReference Include="Moq" Version="4.10.1" />

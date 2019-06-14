@@ -21,7 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="KS.Fiks.QA" Version="1.0.0-dev-69" PrivateAssets="All" />
+    <PackageReference Include="KS.Fiks.QA" Version="1.0.0" PrivateAssets="All" />
     <PackageReference Include="MimeTypes" Version="1.1.0" />
     <PackageReference Include="NLog" Version="4.6.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.5" />
