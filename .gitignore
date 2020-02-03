@@ -338,3 +338,5 @@ healthchecksdb
 # End of https://www.gitignore.io/api/csharp
 # Ignore MacOS specific files
 .DS_Store
+
+.vscode
