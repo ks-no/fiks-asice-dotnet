@@ -67,6 +67,12 @@ namespace KS.Fiks.ASiC_E
             return this;
         }
 
+        public IAsiceBuilder<AsiceArchive> AddFileWithPath(Stream stream, string filename, MimeType mimeType)
+        {
+            this.asiceArchive.AddEntry(stream, new FileRef(filename, mimeType));
+            return this;
+        }
+
         public void Dispose()
         {
             this.asiceArchive.Dispose();
