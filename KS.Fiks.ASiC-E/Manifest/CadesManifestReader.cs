@@ -37,10 +37,12 @@ namespace KS.Fiks.ASiC_E.Manifest
                 var xmlString = streamReader.ReadToEnd()
                     .Replace(
                         "http://uri.etsi.org/02918/v1.2.1#",
-                        Namespaces.CadesAsicNamespace)
+                        Namespaces.CadesAsicNamespace,
+                        StringComparison.CurrentCulture)
                     .Replace(
                         "http://uri.etsi.org/02918/v1.1.1#",
-                        Namespaces.CadesAsicNamespace);
+                        Namespaces.CadesAsicNamespace,
+                        StringComparison.CurrentCulture);
                 return new StringReader(xmlString);
             }
         }
