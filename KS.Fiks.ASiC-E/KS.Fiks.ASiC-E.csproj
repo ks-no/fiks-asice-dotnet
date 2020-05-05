@@ -10,9 +10,10 @@
     <Authors>Ks-Kommunesektorens Organisasjon</Authors>
     <Copyright>Ks-Kommunesektorens Organisasjon</Copyright>
     <PackageProjectUrl>https://github.com/ks-no/fiks-asice-dotnet</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/ks-no/fiks-asice-dotnet/raw/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>git@github.com:ks-no/fiks-asice-dotnet.git</RepositoryUrl>
     <PackageIconUrl>https://ks-no.github.io/images/favicon.png</PackageIconUrl>
+    <PackageIcon>favicon.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
     <TargetFrameworks>netstandard2.1;netcoreapp3.1</TargetFrameworks>
@@ -32,6 +33,14 @@
   <ItemGroup>
     <Folder Include="model" />
     <Folder Include="xsd" />
+    <None Include="favicon.png">
+      <Pack>true</Pack>
+      <PackagePath>/</PackagePath>
+    </None>
+    <None Include="../LICENSE">
+      <Pack>true</Pack>
+      <PackagePath>/</PackagePath>
+    </None>
   </ItemGroup>
 
 
