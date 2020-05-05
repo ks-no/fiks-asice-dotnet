@@ -6,31 +6,35 @@ using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
 
 namespace KS.Fiks.ASiC_E.Crypto
 {
-    public class X509CertificateHolder : ICertificateHolder
+    /*
+     * Holds private public key provided from a System X509Certificate2 instance
+     */
+    public class SystemX509CertificateHolder : ICertificateHolder
     {
         public AsymmetricKeyParameter GetPrivateKey()
         {
-            return this.Key;
+            return Key;
         }
 
         public X509Certificate GetPublicCertificate()
         {
-            return this.Cert;
+            return Cert;
         }
-	
-        public X509Certificate Cert { get; set; }
-        public AsymmetricKeyParameter Key { get; set; }
-	
-        public X509CertificateHolder(X509Certificate2 x509)
+
+        private X509Certificate Cert { get; }
+
+        private AsymmetricKeyParameter Key { get; }
+
+        public SystemX509CertificateHolder(X509Certificate2 x509)
         {
             if (x509 == null)
             {
                 throw new ArgumentNullException(nameof(x509));
             }
 
-            this.Cert = DotNetUtilities.FromX509Certificate(x509);
+            Cert = DotNetUtilities.FromX509Certificate(x509);
             var pair = DotNetUtilities.GetKeyPair(x509.PrivateKey);
-            this.Key = pair.Private;
+            Key = pair.Private;
         }
     }
 }
