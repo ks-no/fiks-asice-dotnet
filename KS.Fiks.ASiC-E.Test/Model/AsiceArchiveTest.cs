@@ -20,7 +20,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
         public AsiceArchiveTest(LogFixture logFixture)
         {
             this.logFixture = logFixture;
-            this.log = this.logFixture.GetLog<AsiceArchiveTest>();
+            this.log = LogFixture.GetLog<AsiceArchiveTest>();
         }
 
         [Fact(DisplayName = "Create ASiC-E package")]

@@ -54,7 +54,7 @@ namespace KS.Fiks.ASiC_E.Test
                 zippedBytes = zipStream.ToArray();
             }
 
-            this.logFixture.GetLog<AsiceBuilderTest>().Info($"Created zip containing {zippedBytes.Length} bytes");
+            LogFixture.GetLog<AsiceBuilderTest>().Info($"Created zip containing {zippedBytes.Length} bytes");
             zippedBytes.Should().HaveCountGreaterThan(0);
 
             using (var zipStream = new MemoryStream(zippedBytes))

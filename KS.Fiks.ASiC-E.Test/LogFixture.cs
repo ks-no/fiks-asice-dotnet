@@ -29,7 +29,7 @@ namespace KS.Fiks.ASiC_E.Test
             LogManager.ReconfigExistingLoggers();
         }
 
-        public Logger GetLog<T>()
+        public static Logger GetLog<T>()
         {
             return LogManager.GetLogger(typeof(T).FullName);
         }
