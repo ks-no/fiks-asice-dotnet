@@ -81,8 +81,10 @@ namespace KS.Fiks.ASiC_E.Crypto
 
         private static PemObject ReadPem(byte[] pemString)
         {
-            using var pemPublicStringReader = new StringReader(Encoding.UTF8.GetString(pemString));
-            return new PemReader(pemPublicStringReader).ReadPemObject();
+            using (var pemPublicStringReader = new StringReader(Encoding.UTF8.GetString(pemString)))
+            {
+                return new PemReader(pemPublicStringReader).ReadPemObject();
+            }
         }
     }
 }
