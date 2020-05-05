@@ -13,7 +13,7 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>git@github.com:ks-no/fiks-asice-dotnet.git</RepositoryUrl>
     <PackageIconUrl>https://ks-no.github.io/images/favicon.png</PackageIconUrl>
-    <PackageIcon>favicon.png</PackageIcon>
+    <PackageIcon>KS.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1</TargetFrameworks>
@@ -33,7 +33,7 @@
   <ItemGroup>
     <Folder Include="model" />
     <Folder Include="xsd" />
-    <None Include="favicon.png">
+    <None Include="KS.png">
       <Pack>true</Pack>
       <PackagePath>/</PackagePath>
     </None>
