@@ -10,8 +10,8 @@
     <Authors>Ks-Kommunesektorens Organisasjon</Authors>
     <Copyright>Ks-Kommunesektorens Organisasjon</Copyright>
     <PackageProjectUrl>https://github.com/ks-no/fiks-asice-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ks-no/fiks-asice-dotnet.git</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <RepositoryUrl>git@github.com:ks-no/fiks-asice-dotnet.git</RepositoryUrl>
     <PackageIconUrl>https://ks-no.github.io/images/favicon.png</PackageIconUrl>
     <PackageIcon>KS.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
@@ -27,7 +27,10 @@
     <PackageReference Include="NLog" Version="4.7.5" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.10" />
     <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
-    
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
