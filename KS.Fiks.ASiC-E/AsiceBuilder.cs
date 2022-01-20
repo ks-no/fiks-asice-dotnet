@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Xml;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
@@ -34,7 +33,7 @@ namespace KS.Fiks.ASiC_E
         {
             var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
             var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
-            if (! outStream.CanWrite)
+            if (!outStream.CanWrite)
             {
                 throw new ArgumentException("The provided Stream must be writable", nameof(stream));
             }
@@ -56,14 +55,30 @@ namespace KS.Fiks.ASiC_E
             return AddFile(file, file.Name);
         }
 
+        public IAsiceBuilder<AsiceArchive> AddFile(FileStream file, bool rootFile)
+        {
+            return AddFile(file, file.Name, rootFile);
+        }
+
         public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename)
         {
             return AddFile(stream, filename, MimeTypeExtractor.ExtractMimeType(filename));
         }
 
+        public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, bool rootFile)
+        {
+            return AddFile(stream, filename, MimeTypeExtractor.ExtractMimeType(filename), rootFile);
+        }
+
         public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType)
         {
             this.asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType));
+            return this;
+        }
+
+        public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType, bool rootFile)
+        {
+            this.asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType), rootFile);
             return this;
         }
 

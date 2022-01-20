@@ -19,7 +19,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         private ICertificateHolder SignatureCertificate { get; }
 
-        private ZipArchive Archive { get;  }
+        private ZipArchive Archive { get; }
 
         private readonly Queue<AsicePackageEntry> entries = new Queue<AsicePackageEntry>();
 
@@ -57,10 +57,11 @@ namespace KS.Fiks.ASiC_E.Model
         /// </summary>
         /// <param name="contentStream">The stream that contains the data</param>
         /// <param name="entry">A description of the file entry</param>
+        /// <param name="rootFile">A value indicating whether the specified file is the container's root file.</param>
         /// <returns>The archive with the entry added</returns>
         /// <exception cref="ArgumentException">If any if the parameters is null or invalid.
         /// Only files that are not in the /META-INF may be added</exception>
-        public AsiceArchive AddEntry(Stream contentStream, FileRef entry)
+        public AsiceArchive AddEntry(Stream contentStream, FileRef entry, bool rootFile = false)
         {
             var packageEntry = entry ?? throw new ArgumentNullException(nameof(entry), "Entry must be provided");
             if (packageEntry.FileName.StartsWith("META-INF/", StringComparison.CurrentCultureIgnoreCase))
@@ -70,7 +71,7 @@ namespace KS.Fiks.ASiC_E.Model
 
             Log.Debug($"Adding entry '{entry.FileName}' of type '{entry.MimeType}' to the ASiC-e archive");
 
-            this.entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
+            this.entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm, rootFile)));
             return this;
         }
 

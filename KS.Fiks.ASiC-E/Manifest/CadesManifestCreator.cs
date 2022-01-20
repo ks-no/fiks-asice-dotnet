@@ -34,7 +34,10 @@ namespace KS.Fiks.ASiC_E.Manifest
 
         public ManifestContainer CreateManifest(IEnumerable<AsicePackageEntry> entries)
         {
-            var manifest = new ASiCManifestType { DataObjectReference = entries.Select(ToDataObject).ToArray() };
+            var hasRootFile = false;
+            var dataObjectReference = entries.Select(e => ToDataObject(e, ref hasRootFile)).ToArray();
+            var manifest = new ASiCManifestType { DataObjectReference = dataObjectReference };
+
             SignatureFileRef signatureFileRef = null;
             if (addSignatureFile)
             {
@@ -79,11 +82,17 @@ namespace KS.Fiks.ASiC_E.Manifest
             return ns;
         }
 
-        private static DataObjectReferenceType ToDataObject(AsicePackageEntry packageEntry)
+        private static DataObjectReferenceType ToDataObject(AsicePackageEntry packageEntry, ref bool hasRootFile)
         {
             if (packageEntry == null)
             {
                 return null;
+            }
+
+            var isRootFile = !hasRootFile && packageEntry.RootFile;
+            if (isRootFile)
+            {
+                hasRootFile = true;
             }
 
             return new DataObjectReferenceType
@@ -94,7 +103,9 @@ namespace KS.Fiks.ASiC_E.Manifest
                     Algorithm = packageEntry.MessageDigestAlgorithm.Uri.ToString()
                 },
                 DigestValue = packageEntry.Digest.GetDigest(),
-                URI = packageEntry.FileName
+                URI = packageEntry.FileName,
+                Rootfile = isRootFile,
+                RootfileSpecified = isRootFile,
             };
         }
     }
