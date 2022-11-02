@@ -25,7 +25,7 @@ namespace KS.Fiks.ASiC_E.Model
 
         private readonly IManifestCreator manifestCreator;
 
-        private bool IsFinalized = false;
+        private bool ManifestAdded;
 
         private MessageDigestAlgorithm MessageDigestAlgorithm { get; }
 
@@ -64,7 +64,7 @@ namespace KS.Fiks.ASiC_E.Model
         /// Only files that are not in the /META-INF may be added</exception>
         public AsiceArchive AddEntry(Stream contentStream, FileRef entry)
         {
-            if (IsFinalized)
+            if (ManifestAdded)
             {
                 throw new ArgumentException("Adding files to a finalized builder is not allowed.");
             }
@@ -94,16 +94,6 @@ namespace KS.Fiks.ASiC_E.Model
             Archive.Dispose();
         }
 
-        public void Finalize()
-        {
-            if (IsFinalized)
-            {
-                return;
-            }
-
-            AddManifest();
-        }
-
         private AsicePackageEntry CreateEntry(Stream contentStream, AsicePackageEntry entry)
         {
             var fileName = entry.FileName ?? throw new ArgumentNullException(nameof(entry), "File name must be provided");
@@ -120,10 +110,11 @@ namespace KS.Fiks.ASiC_E.Model
             return entry;
         }
 
-        private void AddManifest()
+        public void AddManifest()
         {
-            if (IsFinalized)
+            if (ManifestAdded)
             {
+                Log.Debug("Manifest already added to archive");
                 return;
             }
 
@@ -148,7 +139,7 @@ namespace KS.Fiks.ASiC_E.Model
                 CreateEntry(manifestStream, new AsicePackageEntry(manifest.FileName, MimeType.ForString(AsiceConstants.ContentTypeXml), MessageDigestAlgorithm));
             }
 
-            IsFinalized = true;
+            ManifestAdded = true;
             Log.Debug("Manifest added to archive");
         }
 
