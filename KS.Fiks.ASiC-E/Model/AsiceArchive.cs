@@ -25,6 +25,8 @@ namespace KS.Fiks.ASiC_E.Model
 
         private readonly IManifestCreator manifestCreator;
 
+        private bool IsFinalized = false;
+
         private MessageDigestAlgorithm MessageDigestAlgorithm { get; }
 
         public AsiceArchive(ZipArchive archive, IManifestCreator creator, MessageDigestAlgorithm messageDigestAlgorithm, ICertificateHolder signatureCertificate)
@@ -62,6 +64,11 @@ namespace KS.Fiks.ASiC_E.Model
         /// Only files that are not in the /META-INF may be added</exception>
         public AsiceArchive AddEntry(Stream contentStream, FileRef entry)
         {
+            if (IsFinalized)
+            {
+                throw new ArgumentException("Adding files to a finalized builder is not allowed.");
+            }
+
             var packageEntry = entry ?? throw new ArgumentNullException(nameof(entry), "Entry must be provided");
             if (packageEntry.FileName.StartsWith("META-INF/", StringComparison.CurrentCultureIgnoreCase))
             {
@@ -87,6 +94,16 @@ namespace KS.Fiks.ASiC_E.Model
             Archive.Dispose();
         }
 
+        public void Finalize()
+        {
+            if (IsFinalized)
+            {
+                return;
+            }
+
+            AddManifest();
+        }
+
         private AsicePackageEntry CreateEntry(Stream contentStream, AsicePackageEntry entry)
         {
             var fileName = entry.FileName ?? throw new ArgumentNullException(nameof(entry), "File name must be provided");
@@ -105,6 +122,11 @@ namespace KS.Fiks.ASiC_E.Model
 
         private void AddManifest()
         {
+            if (IsFinalized)
+            {
+                return;
+            }
+
             Log.Debug("Creating manifest");
             var manifest = CreateManifest();
             if (manifest.ManifestSpec == ManifestSpec.Cades && manifest.SignatureFileRef != null)
@@ -126,6 +148,7 @@ namespace KS.Fiks.ASiC_E.Model
                 CreateEntry(manifestStream, new AsicePackageEntry(manifest.FileName, MimeType.ForString(AsiceConstants.ContentTypeXml), MessageDigestAlgorithm));
             }
 
+            IsFinalized = true;
             Log.Debug("Manifest added to archive");
         }
 
