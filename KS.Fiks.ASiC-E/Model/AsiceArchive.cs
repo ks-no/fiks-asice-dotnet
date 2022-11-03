@@ -25,8 +25,6 @@ namespace KS.Fiks.ASiC_E.Model
 
         private readonly IManifestCreator manifestCreator;
 
-        private bool ManifestAdded;
-
         private MessageDigestAlgorithm MessageDigestAlgorithm { get; }
 
         public AsiceArchive(ZipArchive archive, IManifestCreator creator, MessageDigestAlgorithm messageDigestAlgorithm, ICertificateHolder signatureCertificate)
@@ -40,7 +38,7 @@ namespace KS.Fiks.ASiC_E.Model
         public static AsiceArchive Create(Stream zipOutStream, IManifestCreator manifestCreator, ICertificateHolder signatureCertificateHolder)
         {
             Log.Debug("Creating ASiC-e Zip");
-            var zipArchive = new ZipArchive(zipOutStream, ZipArchiveMode.Create, false, Encoding.UTF8);
+            var zipArchive = new ZipArchive(zipOutStream, ZipArchiveMode.Create, true, Encoding.UTF8);
 
             // Add mimetype entry
             var zipArchiveEntry = zipArchive.CreateEntry(AsiceConstants.FileNameMimeType);
@@ -64,11 +62,6 @@ namespace KS.Fiks.ASiC_E.Model
         /// Only files that are not in the /META-INF may be added</exception>
         public AsiceArchive AddEntry(Stream contentStream, FileRef entry)
         {
-            if (ManifestAdded)
-            {
-                throw new ArgumentException("Adding files to a finalized builder is not allowed.");
-            }
-
             var packageEntry = entry ?? throw new ArgumentNullException(nameof(entry), "Entry must be provided");
             if (packageEntry.FileName.StartsWith("META-INF/", StringComparison.CurrentCultureIgnoreCase))
             {
@@ -77,7 +70,7 @@ namespace KS.Fiks.ASiC_E.Model
 
             Log.Debug($"Adding entry '{entry.FileName}' of type '{entry.MimeType}' to the ASiC-e archive");
 
-            this.entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
+            entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
             return this;
         }
 
@@ -90,7 +83,6 @@ namespace KS.Fiks.ASiC_E.Model
         protected virtual void Dispose(bool dispose)
         {
             AddManifest();
-
             Archive.Dispose();
         }
 
@@ -110,14 +102,8 @@ namespace KS.Fiks.ASiC_E.Model
             return entry;
         }
 
-        public void AddManifest()
+        private void AddManifest()
         {
-            if (ManifestAdded)
-            {
-                Log.Debug("Manifest already added to archive");
-                return;
-            }
-
             Log.Debug("Creating manifest");
             var manifest = CreateManifest();
             if (manifest.ManifestSpec == ManifestSpec.Cades && manifest.SignatureFileRef != null)
@@ -139,7 +125,6 @@ namespace KS.Fiks.ASiC_E.Model
                 CreateEntry(manifestStream, new AsicePackageEntry(manifest.FileName, MimeType.ForString(AsiceConstants.ContentTypeXml), MessageDigestAlgorithm));
             }
 
-            ManifestAdded = true;
             Log.Debug("Manifest added to archive");
         }
 
