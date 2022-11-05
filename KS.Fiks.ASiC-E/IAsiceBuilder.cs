@@ -29,5 +29,24 @@ namespace KS.Fiks.ASiC_E
         /// <param name="mimeType">The MIME type of the given file</param>
         /// <returns>The same builder with the given file added</returns>
         IAsiceBuilder<T> AddFile(Stream stream, string filename, MimeType mimeType);
+
+        /// <summary>
+        /// Add a stream of data with a given filename to the ASiC-E package. MIME type will be derived from the filename extension.
+        /// </summary>
+        /// <param name="stream">The stream to read the data from</param>
+        /// <param name="filename">The filename of the file to be added</param>
+        /// <param name="rootFile">A value indicating whether the specified file is the container's root file.</param>
+        /// <returns>The same builder with the given file added</returns>
+        IAsiceBuilder<T> AddFile(Stream stream, string filename, bool rootFile);
+
+        /// <summary>
+        /// Add a stream of data with a given filename and MIME type to the ASiC-E package.
+        /// </summary>
+        /// <param name="stream">The stream to read the data from</param>
+        /// <param name="filename">The filename of the file to be added</param>
+        /// <param name="mimeType">The MIME type of the given file</param>
+        /// <param name="rootFile">A value indicating whether the specified file is the container's root file.</param>
+        /// <returns>The same builder with the given file added</returns>
+        IAsiceBuilder<T> AddFile(Stream stream, string filename, MimeType mimeType, bool rootFile);
     }
 }
