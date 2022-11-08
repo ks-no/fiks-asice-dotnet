@@ -38,7 +38,7 @@ namespace KS.Fiks.ASiC_E.Model
         public static AsiceArchive Create(Stream zipOutStream, IManifestCreator manifestCreator, ICertificateHolder signatureCertificateHolder)
         {
             Log.Debug("Creating ASiC-e Zip");
-            var zipArchive = new ZipArchive(zipOutStream, ZipArchiveMode.Create, false, Encoding.UTF8);
+            var zipArchive = new ZipArchive(zipOutStream, ZipArchiveMode.Create, true, Encoding.UTF8);
 
             // Add mimetype entry
             var zipArchiveEntry = zipArchive.CreateEntry(AsiceConstants.FileNameMimeType);
@@ -70,7 +70,7 @@ namespace KS.Fiks.ASiC_E.Model
 
             Log.Debug($"Adding entry '{entry.FileName}' of type '{entry.MimeType}' to the ASiC-e archive");
 
-            this.entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
+            entries.Enqueue(CreateEntry(contentStream, new AsicePackageEntry(entry.FileName, entry.MimeType, MessageDigestAlgorithm)));
             return this;
         }
 
@@ -83,7 +83,6 @@ namespace KS.Fiks.ASiC_E.Model
         protected virtual void Dispose(bool dispose)
         {
             AddManifest();
-
             Archive.Dispose();
         }
 

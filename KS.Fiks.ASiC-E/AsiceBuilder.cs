@@ -48,7 +48,7 @@ namespace KS.Fiks.ASiC_E
         public AsiceArchive Build()
         {
 
-            return this.asiceArchive;
+            return asiceArchive;
         }
 
         public IAsiceBuilder<AsiceArchive> AddFile(FileStream file)
@@ -63,13 +63,13 @@ namespace KS.Fiks.ASiC_E
 
         public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType)
         {
-            this.asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType));
+            asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType));
             return this;
         }
 
         public void Dispose()
         {
-            this.asiceArchive.Dispose();
+            asiceArchive.Dispose();
         }
     }
 }
