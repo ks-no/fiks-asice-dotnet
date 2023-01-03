@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Org.BouncyCastle.Asn1.Pkcs;
 using Org.BouncyCastle.Asn1.X509;
@@ -7,7 +8,7 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities.IO.Pem;
-using Org.BouncyCastle.X509;
+using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
 
 namespace KS.Fiks.ASiC_E.Crypto
 {
@@ -36,6 +37,11 @@ namespace KS.Fiks.ASiC_E.Crypto
         public static PreloadedCertificateHolder Create(byte[] pemPublicCertificate, byte[] pemPrivateKey)
         {
             return new PreloadedCertificateHolder(ExtractX509Certificate(pemPublicCertificate), ExtractPrivateKey(pemPrivateKey));
+        }
+
+        public static PreloadedCertificateHolder Create(X509Certificate2 x509Certificate2)
+        {
+            return new PreloadedCertificateHolder(DotNetUtilities.FromX509Certificate(x509Certificate2), DotNetUtilities.GetKeyPair(x509Certificate2.PrivateKey).Private);
         }
 
         public AsymmetricKeyParameter GetPrivateKey()
