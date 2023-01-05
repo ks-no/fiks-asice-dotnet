@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using FluentAssertions;
+using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
 using NLog;
@@ -23,16 +24,30 @@ namespace KS.Fiks.ASiC_E.Test.Model
             this.log = LogFixture.GetLog<AsiceArchiveTest>();
         }
 
-        [Fact(DisplayName = "Create ASiC-E package")]
-        public void CreateArchive()
+        [Fact(DisplayName = "Create ASiC-E package with public and private keys for signing")]
+        public void CreateArchiveWithPublicAndPrivateKeysForSigning()
+        {
+            var certHolder = TestdataLoader.ReadCertificatesForTest();
+            TestArchive(certHolder);
+        }
+
+        [Fact(DisplayName = "Create ASiC-E package with X509Certificate2 for signing")]
+        public void CreateArchiveWithX509Certificate2ForSigning()
+        {
+            var certHolder = TestdataLoader.ReadX509Certificate2ForTest();
+            TestArchive(certHolder);
+        }
+
+        private void TestArchive(ICertificateHolder certHolder)
         {
             byte[] zippedData;
             using (var zippedOutStream = new MemoryStream())
             {
                 using (var archive = AsiceArchive.Create(
-                    zippedOutStream,
-                    CadesManifestCreator.CreateWithSignatureFile(),
-                    TestdataLoader.ReadCertificatesForTest()))
+                           zippedOutStream,
+                           CadesManifestCreator.CreateWithSignatureFile(),
+                           certHolder
+                       ))
                 using (var fileStream = File.OpenRead(FileNameTestPdf))
                 {
                     archive.AddEntry(
@@ -49,9 +64,13 @@ namespace KS.Fiks.ASiC_E.Test.Model
             using (var zippedArchive = new ZipArchive(zipInput, ZipArchiveMode.Read))
             {
                 zippedArchive.Entries.Should().HaveCount(4);
-                zippedArchive.Entries.First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture)).Should().NotBeNull();
-                zippedArchive.Entries.First(e => e.FullName.Equals(AsiceConstants.CadesManifestFilename, StringComparison.CurrentCulture)).Should().NotBeNull();
-                zippedArchive.Entries.First(e => e.FullName.Equals(AsiceConstants.FileNameMimeType, StringComparison.CurrentCulture)).Should()
+                zippedArchive.Entries.First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture)).Should()
+                    .NotBeNull();
+                zippedArchive.Entries
+                    .First(e => e.FullName.Equals(AsiceConstants.CadesManifestFilename, StringComparison.CurrentCulture))
+                    .Should().NotBeNull();
+                zippedArchive.Entries
+                    .First(e => e.FullName.Equals(AsiceConstants.FileNameMimeType, StringComparison.CurrentCulture)).Should()
                     .NotBeNull();
 
                 var mimeTypeEntry = zippedArchive.GetEntry(AsiceConstants.FileNameMimeType);
