@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <PackageReference Include="KS.Fiks.QA" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="MimeTypes" Version="2.4.0">
+    <PackageReference Include="MimeTypes" Version="2.4.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
