@@ -5,7 +5,6 @@ using System.Linq;
 using KS.Fiks.ASiC_E.Xsd;
 using NLog;
 using Org.BouncyCastle.Cms;
-using Org.BouncyCastle.X509;
 
 namespace KS.Fiks.ASiC_E.Sign
 {
@@ -21,11 +20,11 @@ namespace KS.Fiks.ASiC_E.Sign
                 var cmsTypedStream = new CmsTypedStream(dataStream);
                 var cmsSignedDataParser = new CmsSignedDataParser(cmsTypedStream, signatureStream);
 
-                var store = cmsSignedDataParser.GetCertificates("Collection");
+                var store = cmsSignedDataParser.GetCertificates();
                 var signerInfos = cmsSignedDataParser.GetSignerInfos();
-                var signerInfo = signerInfos.GetSigners().OfType<SignerInformation>().First();
-                var certificate = store?.GetMatches(signerInfo?.SignerID)
-                    .OfType<X509Certificate>().FirstOrDefault();
+                var signerInfo = signerInfos.GetSigners().First();
+                var certificate = store?.EnumerateMatches(signerInfo?.SignerID)
+                    .FirstOrDefault();
 
                 if (certificate == null)
                 {
