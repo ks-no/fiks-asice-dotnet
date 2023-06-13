@@ -96,7 +96,7 @@ namespace KS.Fiks.ASiC_E.Model
             {
                 dataStream.CopyTo(digestStream);
                 dataStream.Flush();
-                entry.Digest = new DigestContainer(DigestUtilities.DoFinal(digestStream.WriteDigest()), MessageDigestAlgorithm);
+                entry.Digest = new DigestContainer(DigestUtilities.DoFinal(digestStream.WriteDigest), MessageDigestAlgorithm);
             }
 
             return entry;

@@ -16,7 +16,7 @@
     <PackageIcon>KS.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0</TargetFrameworks>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
@@ -31,13 +31,13 @@
   </PropertyGroup>        
 
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.2.1" />
     <PackageReference Include="KS.Fiks.QA" Version="1.0.0" PrivateAssets="All" />
     <PackageReference Include="MimeTypes" Version="2.4.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NLog" Version="5.1.3" />
-    <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
       <PrivateAssets>all</PrivateAssets>
