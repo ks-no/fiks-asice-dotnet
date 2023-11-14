@@ -7,6 +7,7 @@ using FluentAssertions;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using MimeMapping;
 using NLog;
 using Xunit;
 using static MimeMapping.MimeUtility;
@@ -53,7 +54,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     archive.AddEntry(
                         fileStream,
-                        new FileRef(FileNameTestPdf, MimeType.ForString(UnknownMimeType)));
+                        new FileRef(FileNameTestPdf, MimeType.ForString(GetMimeMapping(FileNameTestPdf))));
                 }
 
                 zippedData = zippedOutStream.ToArray();
