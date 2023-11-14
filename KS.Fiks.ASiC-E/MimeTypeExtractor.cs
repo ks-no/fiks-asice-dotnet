@@ -1,8 +1,9 @@
 using System;
+using MimeMapping;
 
 namespace KS.Fiks.ASiC_E
 {
-    using KS.Fiks.ASiC_E.Model;
+    using Model;
 
     public static class MimeTypeExtractor
     {
@@ -14,7 +15,7 @@ namespace KS.Fiks.ASiC_E
 
         private static string ExtractType(string fileName)
         {
-            return MimeTypes.GetMimeType(fileName);
+            return MimeUtility.GetMimeMapping(fileName);
         }
     }
 }

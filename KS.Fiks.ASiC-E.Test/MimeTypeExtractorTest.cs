@@ -50,7 +50,7 @@ namespace KS.Fiks.ASiC_E.Test
                 .And
                 .BeOfType<MimeType>();
 
-            type.ToString().Should().Be(MimeTypes.FallbackMimeType);
+            type.ToString().Should().Be(MimeMapping.MimeUtility.UnknownMimeType);
         }
 
         [Fact(DisplayName = "Test using null")]
