@@ -9,6 +9,7 @@ using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
 using NLog;
 using Xunit;
+using static MimeMapping.MimeUtility;
 
 namespace KS.Fiks.ASiC_E.Test.Model
 {
@@ -52,7 +53,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     archive.AddEntry(
                         fileStream,
-                        new FileRef(FileNameTestPdf, MimeType.ForString(MimeTypes.GetMimeType(FileNameTestPdf))));
+                        new FileRef(FileNameTestPdf, MimeType.ForString(UnknownMimeType)));
                 }
 
                 zippedData = zippedOutStream.ToArray();
@@ -130,7 +131,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     archive.AddEntry(
                         fileStream,
-                        new FileRef(FileNameTestPdf, MimeType.ForString(MimeTypes.GetMimeType(FileNameTestPdf))));
+                        new FileRef(FileNameTestPdf, MimeType.ForString(GetMimeMapping(FileNameTestPdf))));
                 }
 
                 var zippedData = zippedOutStream.ToArray();
