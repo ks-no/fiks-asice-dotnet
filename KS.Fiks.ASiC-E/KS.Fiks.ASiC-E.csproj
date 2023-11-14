@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <VersionPrefix>2.0.1</VersionPrefix>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>10</LangVersion>
     <RootNamespace>KS.Fiks.ASiC_E</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Library for handling ASiC-E packages</Title>
@@ -16,7 +16,7 @@
     <PackageIcon>KS.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
