@@ -7,8 +7,8 @@
     <RootNamespace>KS.Fiks.ASiC_E</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Library for handling ASiC-E packages</Title>
-    <Authors>Ks-Kommunesektorens Organisasjon</Authors>
-    <Copyright>Ks-Kommunesektorens Organisasjon</Copyright>
+    <Authors>KS-DIGITALE FELLESTJENESTER AS</Authors>
+    <Copyright>KS-DIGITALE FELLESTJENESTER AS</Copyright>
     <PackageProjectUrl>https://github.com/ks-no/fiks-asice-dotnet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ks-no/fiks-asice-dotnet.git</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
