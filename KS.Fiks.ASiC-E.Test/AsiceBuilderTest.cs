@@ -7,61 +7,51 @@ using KS.Fiks.ASiC_E.Model;
 using Moq;
 using Xunit;
 
-namespace KS.Fiks.ASiC_E.Test
+namespace KS.Fiks.ASiC_E.Test;
+
+public class AsiceBuilderTest : IClassFixture<AsiceBuilderTest>
 {
-    public class AsiceBuilderTest : IClassFixture<LogFixture>
+    [Fact(DisplayName = "Try to create builder using non-writable stream")]
+    public void TestNotWritableStream()
     {
+        var zipStream = new Mock<Stream>();
+        var certificate = new Mock<ICertificateHolder>();
+        Action createFunction = () =>
+            AsiceBuilder.Create(zipStream.Object, MessageDigestAlgorithm.SHA512, certificate.Object);
+        createFunction.Should().Throw<ArgumentException>();
+        zipStream.VerifyGet(s => s.CanWrite);
+        zipStream.VerifyNoOtherCalls();
+    }
 
-        private readonly LogFixture logFixture;
+    [Fact]
+    public void TestAddFileStream()
+    {
+        byte[] zippedBytes;
 
-        public AsiceBuilderTest(LogFixture logFixture)
+        var signingCertificates = TestdataLoader.ReadCertificatesForTest();
+        using (var zipStream = new MemoryStream())
+        using (var fileStream = File.OpenRead("small.pdf"))
         {
-            this.logFixture = logFixture;
-        }
-
-        [Fact(DisplayName = "Try to create builder using non-writable stream")]
-        public void TestNotWritableStream()
-        {
-            var zipStream = new Mock<Stream>();
-            var certificate = new Mock<ICertificateHolder>();
-            Action createFunction = () =>
-                AsiceBuilder.Create(zipStream.Object, MessageDigestAlgorithm.SHA512, certificate.Object);
-            createFunction.Should().Throw<ArgumentException>();
-            zipStream.VerifyGet(s => s.CanWrite);
-            zipStream.VerifyNoOtherCalls();
-        }
-
-        [Fact]
-        public void TestAddFileStream()
-        {
-            byte[] zippedBytes;
-
-            var signingCertificates = TestdataLoader.ReadCertificatesForTest();
-            using (var zipStream = new MemoryStream())
-            using (var fileStream = File.OpenRead("small.pdf"))
+            using (var asiceBuilder =
+                   AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
             {
-                using (var asiceBuilder =
-                    AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
-                {
-                    asiceBuilder.Should().NotBeNull();
+                asiceBuilder.Should().NotBeNull();
 
-                    asiceBuilder.AddFile(fileStream).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
+                asiceBuilder.AddFile(fileStream).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
 
-                    var asiceArchive = asiceBuilder.Build();
-                    asiceArchive.Should().NotBeNull();
-                }
-
-                zippedBytes = zipStream.ToArray();
+                var asiceArchive = asiceBuilder.Build();
+                asiceArchive.Should().NotBeNull();
             }
 
-            LogFixture.GetLog<AsiceBuilderTest>().Info($"Created zip containing {zippedBytes.Length} bytes");
-            zippedBytes.Should().HaveCountGreaterThan(0);
+            zippedBytes = zipStream.ToArray();
+        }
 
-            using (var zipStream = new MemoryStream(zippedBytes))
-            using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
-            {
-                zipArchive.Entries.Count.Should().Be(4);
-            }
+        zippedBytes.Should().HaveCountGreaterThan(0);
+
+        using (var zipStream = new MemoryStream(zippedBytes))
+        using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+        {
+            zipArchive.Entries.Count.Should().Be(4);
         }
     }
 }

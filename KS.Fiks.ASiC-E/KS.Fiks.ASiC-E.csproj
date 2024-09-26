@@ -2,8 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>2.0.2</VersionPrefix>
-    <LangVersion>10</LangVersion>
+    <VersionPrefix>3.0.0</VersionPrefix>
+    <LangVersion>default</LangVersion>
     <RootNamespace>KS.Fiks.ASiC_E</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Library for handling ASiC-E packages</Title>
@@ -16,7 +16,7 @@
     <PackageIcon>KS.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
-    <TargetFrameworks>net6.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>net8.0;netstandard2.0;netstandard2.1</TargetFrameworks>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
@@ -33,8 +33,10 @@
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
     <PackageReference Include="KS.Fiks.QA" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <PackageReference Include="MimeMapping" Version="3.0.1" />
-    <PackageReference Include="NLog" Version="5.3.3" />
     <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
