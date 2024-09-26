@@ -9,7 +9,7 @@ using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test;
 
-public class AsiceBuilderTest : IClassFixture<AsiceBuilderTest>
+public class AsiceBuilderTest
 {
     [Fact(DisplayName = "Try to create builder using non-writable stream")]
     public void TestNotWritableStream()
