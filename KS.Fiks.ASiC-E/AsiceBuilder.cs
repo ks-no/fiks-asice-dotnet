@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
@@ -58,7 +59,15 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
 
     public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType)
     {
-        _asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType));
+        var newFileName = Path.GetFileName(filename);
+        var directory = Path.GetDirectoryName(filename) ?? string.Empty;
+        directory = directory.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).LastOrDefault() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            newFileName = string.Concat(directory, "/", newFileName);
+        }
+
+        _asiceArchive.AddEntry(stream, new FileRef(newFileName, mimeType));
         return this;
     }
 

@@ -54,4 +54,73 @@ public class AsiceBuilderTest
             zipArchive.Entries.Count.Should().Be(4);
         }
     }
+
+    [Fact]
+    public void TestAddFileStreamWithFilenameParameter()
+    {
+        byte[] zippedBytes;
+        var filename = "tiny.pdf";
+
+        var signingCertificates = TestdataLoader.ReadCertificatesForTest();
+        using (var zipStream = new MemoryStream())
+        using (var fileStream = File.OpenRead("small.pdf"))
+        {
+            using (var asiceBuilder =
+                   AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
+            {
+                asiceBuilder.Should().NotBeNull();
+
+                asiceBuilder.AddFile(fileStream, filename).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
+
+                var asiceArchive = asiceBuilder.Build();
+                asiceArchive.Should().NotBeNull();
+            }
+
+            zippedBytes = zipStream.ToArray();
+        }
+
+        zippedBytes.Should().HaveCountGreaterThan(0);
+
+        using (var zipStream = new MemoryStream(zippedBytes))
+        using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+        {
+            zipArchive.Entries.Count.Should().Be(4);
+            zipArchive.Entries.Should().Contain(e => e.FullName == filename);
+        }
+    }
+
+    [Fact]
+    public void TestAddFileStreamInFolder()
+    {
+        byte[] zippedBytes;
+        var filename = "small.pdf";
+        var foldername = "someFolder";
+
+        var signingCertificates = TestdataLoader.ReadCertificatesForTest();
+        using (var zipStream = new MemoryStream())
+        using (var fileStream = File.OpenRead("small.pdf"))
+        {
+            using (var asiceBuilder =
+                   AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
+            {
+                asiceBuilder.Should().NotBeNull();
+
+                asiceBuilder.AddFile(fileStream, $"{foldername}/{filename}").Should().NotBeNull().And.BeOfType<AsiceBuilder>();
+
+                var asiceArchive = asiceBuilder.Build();
+                asiceArchive.Should().NotBeNull();
+            }
+
+            zippedBytes = zipStream.ToArray();
+        }
+
+        zippedBytes.Should().HaveCountGreaterThan(0);
+
+        using (var zipStream = new MemoryStream(zippedBytes))
+        using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+        {
+            zipArchive.Entries.Count.Should().Be(4);
+            zipArchive.Entries.Should().Contain(e => e.FullName == $"{foldername}/{filename}");
+        }
+    }
 }
