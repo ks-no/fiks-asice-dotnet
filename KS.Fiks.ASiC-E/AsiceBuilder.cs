@@ -1,81 +1,76 @@
 using System;
 using System.IO;
-using System.Xml;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
 
-namespace KS.Fiks.ASiC_E
+namespace KS.Fiks.ASiC_E;
+
+public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
 {
-    public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
+    private readonly AsiceArchive _asiceArchive;
+
+    private AsiceBuilder(AsiceArchive asiceArchive)
     {
-        private readonly AsiceArchive asiceArchive;
+        _asiceArchive = asiceArchive;
+    }
 
-        private AsiceBuilder(AsiceArchive asiceArchive, MessageDigestAlgorithm messageDigestAlgorithm)
+    /// <summary>
+    /// Create builder
+    /// </summary>
+    /// <param name="stream">The stream where the ASiC-E data will be written. Can not be null and must be writable</param>
+    /// <param name="messageDigestAlgorithm">The digest algorithm to use. Not nullable</param>
+    /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
+    /// <returns>A builder that may be used to construct a ASiC-E package</returns>
+    /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
+    public static AsiceBuilder Create(
+        Stream stream,
+        MessageDigestAlgorithm messageDigestAlgorithm,
+        ICertificateHolder signCertificate)
+    {
+        var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
+        var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
+        if (!outStream.CanWrite)
         {
-            this.asiceArchive = asiceArchive;
-            MessageDigestAlgorithm = messageDigestAlgorithm;
+            throw new ArgumentException("The provided Stream must be writable", nameof(stream));
         }
 
-        private MessageDigestAlgorithm MessageDigestAlgorithm { get; }
+        var cadesManifestCreator = signCertificate == null
+            ? CadesManifestCreator.CreateWithoutSignatureFile()
+            : CadesManifestCreator.CreateWithSignatureFile();
+        return new AsiceBuilder(new AsiceArchive(outStream, cadesManifestCreator, signCertificate));
+    }
 
-        /// <summary>
-        /// Create builder
-        /// </summary>
-        /// <param name="stream">The stream where the ASiC-E data will be written. Can not be null and must be writable</param>
-        /// <param name="messageDigestAlgorithm">The digest algorithm to use. Not nullable</param>
-        /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
-        /// <returns>A builder that may be used to construct a ASiC-E package</returns>
-        /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
-        public static AsiceBuilder Create(
-            Stream stream,
-            MessageDigestAlgorithm messageDigestAlgorithm,
-            ICertificateHolder signCertificate)
-        {
-            var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
-            var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
-            if (! outStream.CanWrite)
-            {
-                throw new ArgumentException("The provided Stream must be writable", nameof(stream));
-            }
+    public AsiceArchive Build()
+    {
+        return _asiceArchive;
+    }
 
-            var cadesManifestCreator = signCertificate == null
-                ? CadesManifestCreator.CreateWithoutSignatureFile()
-                : CadesManifestCreator.CreateWithSignatureFile();
-            return new AsiceBuilder(AsiceArchive.Create(outStream, cadesManifestCreator, signCertificate), algorithm);
-        }
+    public IAsiceBuilder<AsiceArchive> AddFile(FileStream file)
+    {
+        return AddFile(file, file.Name);
+    }
 
-        public AsiceArchive Build()
-        {
+    public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename)
+    {
+        return AddFile(stream, filename, MimeTypeExtractor.ExtractMimeType(filename));
+    }
 
-            return this.asiceArchive;
-        }
+    public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType)
+    {
+        _asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType));
+        return this;
+    }
 
-        public IAsiceBuilder<AsiceArchive> AddFile(FileStream file)
-        {
-            return AddFile(file, file.Name);
-        }
 
-        public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename)
-        {
-            return AddFile(stream, filename, MimeTypeExtractor.ExtractMimeType(filename));
-        }
+    public IAsiceBuilder<AsiceArchive> AddFileWithPath(Stream stream, string filename, MimeType mimeType)
+    {
+        _asiceArchive.AddEntry(stream, new FileRef(filename, mimeType));
+        return this;
+    }
 
-        public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType)
-        {
-            this.asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType));
-            return this;
-        }
-
-        public IAsiceBuilder<AsiceArchive> AddFileWithPath(Stream stream, string filename, MimeType mimeType)
-        {
-            this.asiceArchive.AddEntry(stream, new FileRef(filename, mimeType));
-            return this;
-        }
-
-        public void Dispose()
-        {
-            this.asiceArchive.Dispose();
-        }
+    public void Dispose()
+    {
+        _asiceArchive.Dispose();
     }
 }

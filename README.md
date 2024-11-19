@@ -2,6 +2,7 @@
 [![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](//github.com/ks-no/fiks-asice-dotnet/blob/master/LICENSE)
 [![Nuget](https://img.shields.io/nuget/vpre/KS.Fiks.ASiC-E.svg)](https://www.nuget.org/packages/KS.Fiks.ASiC-E)
 [![GitHub issues](https://img.shields.io/github/issues-raw/ks-no/fiks-asice-dotnet.svg)](//github.com/ks-no/fiks-asice-dotnet/issues)
+[![GitHub Release Date](https://img.shields.io/github/release-date/ks-no/fiks-asice-dotnet)](//github.com/ks-no/fiks-asice-dotnet/releases)
 
 Library for working with ASiC-E packages in .Net Core based projects. 
 This project is created by KS and released under a MIT license.

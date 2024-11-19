@@ -1,37 +1,62 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>1.0.2</VersionPrefix>
-    
+    <VersionPrefix>3.0.2</VersionPrefix>
+    <LangVersion>default</LangVersion>
     <RootNamespace>KS.Fiks.ASiC_E</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Library for handling ASiC-E packages</Title>
-    <Authors>Ks-Kommunesektorens Organisasjon</Authors>
-    <Copyright>Ks-Kommunesektorens Organisasjon</Copyright>
+    <Authors>KS-DIGITALE FELLESTJENESTER AS</Authors>
+    <Copyright>KS-DIGITALE FELLESTJENESTER AS</Copyright>
     <PackageProjectUrl>https://github.com/ks-no/fiks-asice-dotnet</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/ks-no/fiks-asice-dotnet/raw/master/LICENSE</PackageLicenseUrl>
-    <RepositoryUrl>git@github.com:ks-no/fiks-asice-dotnet.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/ks-no/fiks-asice-dotnet.git</RepositoryUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIconUrl>https://ks-no.github.io/images/favicon.png</PackageIconUrl>
+    <PackageIcon>KS.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <PackageTags>FIKS</PackageTags>
-    <TargetFrameworks>netstandard2.1;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net8.0;netstandard2.0;netstandard2.1</TargetFrameworks>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>asice-assembly-sign.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>        
+
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
     <PackageReference Include="KS.Fiks.QA" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="MimeTypes" Version="1.1.0" />
-    <PackageReference Include="NLog" Version="4.6.5" />
-    <PackageReference Include="Portable.BouncyCastle" Version="1.8.5.2" />
-    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
-    
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+    <PackageReference Include="MimeMapping" Version="3.0.1" />
+    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="model" />
     <Folder Include="xsd" />
+    <None Include="KS.png">
+      <Pack>true</Pack>
+      <PackagePath>/</PackagePath>
+    </None>
+    <None Include="../LICENSE">
+      <Pack>true</Pack>
+      <PackagePath>/</PackagePath>
+    </None>
+    <None Include="../README.md">
+      <Pack>true</Pack>
+      <PackagePath>/</PackagePath>
+    </None>
   </ItemGroup>
 
 
