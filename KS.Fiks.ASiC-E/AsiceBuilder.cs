@@ -62,6 +62,13 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
         return this;
     }
 
+
+    public IAsiceBuilder<AsiceArchive> AddFileWithPath(Stream stream, string filename, MimeType mimeType)
+    {
+        _asiceArchive.AddEntry(stream, new FileRef(filename, mimeType));
+        return this;
+    }
+
     public void Dispose()
     {
         _asiceArchive.Dispose();
