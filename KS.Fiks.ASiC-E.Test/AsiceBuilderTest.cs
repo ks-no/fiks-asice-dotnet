@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using FluentAssertions;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
@@ -53,39 +54,41 @@ public class AsiceBuilderTest
         {
             zipArchive.Entries.Count.Should().Be(4);
         }
+    }
 
-        [Fact]
-        public void TestAddFileWithPathAddsFileInFolder()
+    [Theory]
+    [InlineData("root/small.pdf")]
+    [InlineData("root/someFolder/small.pdf")]
+    [InlineData("root/someFolder/newName.pdf")]
+    public void TestAddFileWithPathAddsFileInFolder(string fullPath)
+    {
+        byte[] zippedBytes;
+
+        var signingCertificates = TestdataLoader.ReadCertificatesForTest();
+        using (var zipStream = new MemoryStream())
+        using (var fileStream = File.OpenRead("small.pdf"))
         {
-            byte[] zippedBytes;
-
-            var signingCertificates = TestdataLoader.ReadCertificatesForTest();
-            using (var zipStream = new MemoryStream())
-            using (var fileStream = File.OpenRead("small.pdf"))
+            using (var asiceBuilder =
+                AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
             {
-                using (var asiceBuilder =
-                    AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
-                {
-                    asiceBuilder.Should().NotBeNull();
+                asiceBuilder.Should().NotBeNull();
 
-                    asiceBuilder.AddFileWithPath(fileStream, "someFolder/small.pdf",  MimeTypeExtractor.ExtractMimeType("small.pdf")).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
+                asiceBuilder.AddFileWithPath(fileStream, fullPath,  MimeTypeExtractor.ExtractMimeType("small.pdf")).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
 
-                    var asiceArchive = asiceBuilder.Build();
-                    asiceArchive.Should().NotBeNull();
-                }
-
-                zippedBytes = zipStream.ToArray();
+                var asiceArchive = asiceBuilder.Build();
+                asiceArchive.Should().NotBeNull();
             }
 
-            this.logFixture.GetLog<AsiceBuilderTest>().Info($"Created zip containing {zippedBytes.Length} bytes");
-            zippedBytes.Should().HaveCountGreaterThan(0);
+            zippedBytes = zipStream.ToArray();
+        }
 
-            using (var zipStream = new MemoryStream(zippedBytes))
-            using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
-            {
-                zipArchive.Entries.Count.Should().Be(4);
-                zipArchive.Entries.Should().Contain(e => e.FullName == "someFolder/small.pdf");
-            }
+        zippedBytes.Should().HaveCountGreaterThan(0);
+
+        using (var zipStream = new MemoryStream(zippedBytes))
+        using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+        {
+            zipArchive.Entries.Count.Should().Be(4);
+            zipArchive.Entries.Should().Contain(e => e.FullName == fullPath);
         }
     }
 }
