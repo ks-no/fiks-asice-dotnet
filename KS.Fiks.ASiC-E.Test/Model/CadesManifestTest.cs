@@ -1,9 +1,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Model;
 using KS.Fiks.ASiC_E.Xsd;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Model
@@ -15,7 +15,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
         public void ProvideNull()
         {
             Action creator = () => new CadesManifest(null);
-            creator.Should().Throw<ArgumentNullException>().And.ParamName.Should().Be("asiCManifestType");
+            creator.ShouldThrow<ArgumentNullException>().ParamName.ShouldBe("asiCManifestType");
         }
 
         [Fact(DisplayName = "Instantiate using a quite empty manifest")]
@@ -23,11 +23,11 @@ namespace KS.Fiks.ASiC_E.Test.Model
         {
             var manifestType = new ASiCManifestType();
             var cadesManifest = new CadesManifest(manifestType);
-            cadesManifest.Should().NotBeNull();
-            cadesManifest.Spec.Should().Be(ManifestSpec.Cades);
-            cadesManifest.Digests.Should().BeNull();
-            cadesManifest.SignatureFileName.Should().BeNull();
-            cadesManifest.SignatureFileRef.Should().BeNull();
+            cadesManifest.ShouldNotBeNull();
+            cadesManifest.Spec.ShouldBe(ManifestSpec.Cades);
+            cadesManifest.Digests.ShouldBeNull();
+            cadesManifest.SignatureFileName.ShouldBeNull();
+            cadesManifest.SignatureFileRef.ShouldBeNull();
         }
 
         [Fact(DisplayName = "Instantiate with data objects")]
@@ -53,12 +53,12 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 }
             };
             var cadesManifest = new CadesManifest(manifestType);
-            cadesManifest.Should().NotBeNull();
+            cadesManifest.ShouldNotBeNull();
             var digests = cadesManifest.Digests;
-            digests.Should().NotBeNull();
-            digests.Count.Should().Be(1);
-            digests.First().Value.MessageDigestAlgorithm.Should().BeEquivalentTo(digestAlgorithm);
-            cadesManifest.SignatureFileRef.Should().BeNull();
+            digests.ShouldNotBeNull();
+            digests.Count.ShouldBe(1);
+            digests.First().Value.MessageDigestAlgorithm.ShouldBeEquivalentTo(digestAlgorithm);
+            cadesManifest.SignatureFileRef.ShouldBeNull();
         }
 
         [Fact(DisplayName = "Instantiate with signature ref")]
@@ -74,12 +74,12 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 }
             };
             var cadesManifest = new CadesManifest(manifestType);
-            cadesManifest.Should().NotBeNull();
-            cadesManifest.SignatureFileName.Should().NotBeNull();
-            cadesManifest.SignatureFileName.Should().Be(SignatureFileName);
-            cadesManifest.SignatureFileRef.Should().NotBeNull();
-            cadesManifest.SignatureFileRef.FileName.Should().Be(SignatureFileName);
-            cadesManifest.SignatureFileRef.MimeType.Should().Be(AsiceConstants.MimeTypeCadesSignature);
+            cadesManifest.ShouldNotBeNull();
+            cadesManifest.SignatureFileName.ShouldNotBeNull();
+            cadesManifest.SignatureFileName.ShouldBe(SignatureFileName);
+            cadesManifest.SignatureFileRef.ShouldNotBeNull();
+            cadesManifest.SignatureFileRef.FileName.ShouldBe(SignatureFileName);
+            cadesManifest.SignatureFileRef.MimeType.ShouldBe(AsiceConstants.MimeTypeCadesSignature);
         }
     }
 }

@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Model;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Model
@@ -22,27 +21,27 @@ namespace KS.Fiks.ASiC_E.Test.Model
         [MemberData(nameof(Algorithms))]
         public void TestStaticProperties(MessageDigestAlgorithm messageDigestAlgorithm)
         {
-            messageDigestAlgorithm.Name.Should().NotBeNull();
-            messageDigestAlgorithm.Uri.Should().NotBeNull();
-            messageDigestAlgorithm.Digest.Should().NotBeNull();
+            messageDigestAlgorithm.Name.ShouldNotBeNull();
+            messageDigestAlgorithm.Uri.ShouldNotBeNull();
+            messageDigestAlgorithm.Digest.ShouldNotBeNull();
         }
 
         [Fact(DisplayName = "Test that the static field UriSHA256 is initialized")]
         public void Uri256()
         {
-            MessageDigestAlgorithm.UriSHA256XmlEnc.Should().NotBeNull();
+            MessageDigestAlgorithm.UriSHA256XmlEnc.ShouldNotBeNull();
         }
 
         [Fact(DisplayName = "Test that the static field UriSHA384 is initialized")]
         public void Uri384()
         {
-            MessageDigestAlgorithm.UriSHA384XmlEnc.Should().NotBeNull();
+            MessageDigestAlgorithm.UriSHA384XmlEnc.ShouldNotBeNull();
         }
 
         [Fact(DisplayName = "Test that the static field UriSHA512 is initialized")]
         public void Uri512()
         {
-            MessageDigestAlgorithm.UriSHA512XmlEnc.Should().NotBeNull();
+            MessageDigestAlgorithm.UriSHA512XmlEnc.ShouldNotBeNull();
         }
     }
 }

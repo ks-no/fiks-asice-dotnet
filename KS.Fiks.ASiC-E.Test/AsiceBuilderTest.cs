@@ -1,11 +1,10 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Runtime.InteropServices;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
 using Moq;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test;
@@ -19,7 +18,7 @@ public class AsiceBuilderTest
         var certificate = new Mock<ICertificateHolder>();
         Action createFunction = () =>
             AsiceBuilder.Create(zipStream.Object, MessageDigestAlgorithm.SHA512, certificate.Object);
-        createFunction.Should().Throw<ArgumentException>();
+        createFunction.ShouldThrow<ArgumentException>();
         zipStream.VerifyGet(s => s.CanWrite);
         zipStream.VerifyNoOtherCalls();
     }
@@ -36,23 +35,23 @@ public class AsiceBuilderTest
             using (var asiceBuilder =
                    AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
             {
-                asiceBuilder.Should().NotBeNull();
+                asiceBuilder.ShouldNotBeNull();
 
-                asiceBuilder.AddFile(fileStream).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
+                asiceBuilder.AddFile(fileStream).ShouldNotBeNull().ShouldBeOfType<AsiceBuilder>();
 
                 var asiceArchive = asiceBuilder.Build();
-                asiceArchive.Should().NotBeNull();
+                asiceArchive.ShouldNotBeNull();
             }
 
             zippedBytes = zipStream.ToArray();
         }
 
-        zippedBytes.Should().HaveCountGreaterThan(0);
+        zippedBytes.Length.ShouldBeGreaterThan(0);
 
         using (var zipStream = new MemoryStream(zippedBytes))
         using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
         {
-            zipArchive.Entries.Count.Should().Be(4);
+            zipArchive.Entries.Count.ShouldBe(4);
         }
     }
 
@@ -71,24 +70,24 @@ public class AsiceBuilderTest
             using (var asiceBuilder =
                 AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
             {
-                asiceBuilder.Should().NotBeNull();
+                asiceBuilder.ShouldNotBeNull();
 
-                asiceBuilder.AddFileWithPath(fileStream, fullPath,  MimeTypeExtractor.ExtractMimeType("small.pdf")).Should().NotBeNull().And.BeOfType<AsiceBuilder>();
+                asiceBuilder.AddFileWithPath(fileStream, fullPath,  MimeTypeExtractor.ExtractMimeType("small.pdf")).ShouldNotBeNull().ShouldBeOfType<AsiceBuilder>();
 
                 var asiceArchive = asiceBuilder.Build();
-                asiceArchive.Should().NotBeNull();
+                asiceArchive.ShouldNotBeNull();
             }
 
             zippedBytes = zipStream.ToArray();
         }
 
-        zippedBytes.Should().HaveCountGreaterThan(0);
+        zippedBytes.Length.ShouldBeGreaterThan(0);
 
         using (var zipStream = new MemoryStream(zippedBytes))
         using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Read))
         {
-            zipArchive.Entries.Count.Should().Be(4);
-            zipArchive.Entries.Should().Contain(e => e.FullName == fullPath);
+            zipArchive.Entries.Count.ShouldBe(4);
+            zipArchive.Entries.ShouldContain(e => e.FullName == fullPath);
         }
     }
 }

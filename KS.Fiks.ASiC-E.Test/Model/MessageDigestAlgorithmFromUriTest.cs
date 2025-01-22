@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Model;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Model
@@ -13,7 +11,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
         [ClassData(typeof(UriAndAlgorithmCollection))]
         public void TestFromUri(Uri uri, MessageDigestAlgorithm expectedAlgorithm)
         {
-            MessageDigestAlgorithm.FromUri(uri).Should().Be(expectedAlgorithm);
+            MessageDigestAlgorithm.FromUri(uri).ShouldBe(expectedAlgorithm);
         }
     }
 }
