@@ -3,8 +3,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Model;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Model
@@ -23,7 +23,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
                         Action createAction = () => new AsiceReadModel(readArchive);
-                        createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
+                        createAction.ShouldThrow<ArgumentException>().ParamName.ShouldBe("zipArchive");
                     }
                 }
             }
@@ -48,7 +48,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
                         Action createAction = () => new AsiceReadModel(readArchive);
-                        createAction.Should().Throw<ArgumentException>().And.ParamName.Should().Be("zipArchive");
+                        createAction.ShouldThrow<ArgumentException>().ParamName.ShouldBe("zipArchive");
                     }
                 }
             }
@@ -73,9 +73,9 @@ namespace KS.Fiks.ASiC_E.Test.Model
                     using (var readArchive = new ZipArchive(zipInStream, ZipArchiveMode.Read))
                     {
                         var asiceArchive = new AsiceReadModel(readArchive);
-                        asiceArchive.Should().NotBeNull();
-                        asiceArchive.Entries.Count().Should().Be(0);
-                        asiceArchive.CadesManifest.Should().BeNull();
+                        asiceArchive.ShouldNotBeNull();
+                        asiceArchive.Entries.Count().ShouldBe(0);
+                        asiceArchive.CadesManifest.ShouldBeNull();
                     }
                 }
             }
@@ -89,19 +89,19 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 using (var zip = new ZipArchive(asicStream, ZipArchiveMode.Read))
                 using (var asice = new AsiceReadModel(zip))
                 {
-                    asice.CadesManifest.Should().NotBeNull();
-                    asice.Signatures.Should().NotBeNull();
+                    asice.CadesManifest.ShouldNotBeNull();
+                    asice.Signatures.ShouldNotBeNull();
                     foreach (var asiceReadEntry in asice.Entries)
                     {
                         using (var entryStream = asiceReadEntry.OpenStream())
                         using (var bufferStream = new MemoryStream())
                         {
                             entryStream.CopyTo(bufferStream);
-                            bufferStream.Position.Should().BeGreaterThan(0);
+                            bufferStream.Position.ShouldBeGreaterThan(0);
                         }
                     }
 
-                    asice.DigestVerifier.Verification().AllValid.Should().BeTrue();
+                    asice.DigestVerifier.Verification().AllValid.ShouldBeTrue();
                 }
             }
         }
@@ -119,7 +119,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 using (var asiceBuilder = AsiceBuilder.Create(outputStream, MessageDigestAlgorithm.SHA256, signingCertificates))
                 {
                     asiceBuilder.AddFile(textFileStream, contentFile, MimeType.ForString("text/plain"));
-                    asiceBuilder.Build().Should().NotBeNull();
+                    asiceBuilder.Build().ShouldNotBeNull();
                 }
 
                 using (var readStream = new MemoryStream(outputStream.ToArray()))
@@ -127,27 +127,27 @@ namespace KS.Fiks.ASiC_E.Test.Model
                 {
                     var asicePackage = new AsiceReadModel(zip);
                     var entries = asicePackage.Entries;
-                    entries.Count().Should().Be(1);
+                    entries.Count().ShouldBe(1);
                     var cadesManifest = asicePackage.CadesManifest;
-                    cadesManifest.Should().NotBeNull();
+                    cadesManifest.ShouldNotBeNull();
 
-                    cadesManifest.Digests.Count.Should().Be(1);
-                    asicePackage.DigestVerifier.Should().NotBeNull();
-                    cadesManifest.SignatureFileName.Should().NotBeNull();
-                    asicePackage.Signatures.Should().NotBeNull();
-                    asicePackage.Signatures.Containers.Count().Should().Be(1);
+                    cadesManifest.Digests.Count.ShouldBe(1);
+                    asicePackage.DigestVerifier.ShouldNotBeNull();
+                    cadesManifest.SignatureFileName.ShouldNotBeNull();
+                    asicePackage.Signatures.ShouldNotBeNull();
+                    asicePackage.Signatures.Containers.Count().ShouldBe(1);
 
                     var firstEntry = entries.First();
                     using (var entryStream = firstEntry.OpenStream())
                     using (var memoryStream = new MemoryStream())
                     {
                         entryStream.CopyTo(memoryStream);
-                        Encoding.UTF8.GetString(memoryStream.ToArray()).Should().Be(content);
+                        Encoding.UTF8.GetString(memoryStream.ToArray()).ShouldBe(content);
                     }
 
                     var verificationResult = asicePackage.DigestVerifier.Verification();
-                    verificationResult.Should().NotBeNull();
-                    verificationResult.AllValid.Should().BeTrue();
+                    verificationResult.ShouldNotBeNull();
+                    verificationResult.AllValid.ShouldBeTrue();
                 }
             }
         }

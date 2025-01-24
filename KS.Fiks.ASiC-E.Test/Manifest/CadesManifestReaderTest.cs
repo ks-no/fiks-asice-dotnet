@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Text;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Manifest
@@ -29,9 +29,9 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             {
                 var cadesManifestReader = new CadesManifestReader();
                 var cadesManifest = cadesManifestReader.FromStream(inputStream);
-                cadesManifest.Should().NotBeNull();
-                cadesManifest.Digests.Count.Should().Be(2);
-                cadesManifest.SignatureFileRef.Should().NotBeNull();
+                cadesManifest.ShouldNotBeNull();
+                cadesManifest.Digests.Count.ShouldBe(2);
+                cadesManifest.SignatureFileRef.ShouldNotBeNull();
             }
         }
 
@@ -54,9 +54,9 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             {
                 var cadesManifestReader = new CadesManifestReader();
                 var cadesManifest = cadesManifestReader.FromStream(inputStream);
-                cadesManifest.Should().NotBeNull();
-                cadesManifest.Digests.Count.Should().Be(2);
-                cadesManifest.SignatureFileRef.Should().NotBeNull();
+                cadesManifest.ShouldNotBeNull();
+                cadesManifest.Digests.Count.ShouldBe(2);
+                cadesManifest.SignatureFileRef.ShouldNotBeNull();
             }
         }
 
@@ -79,9 +79,9 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             {
                 var cadesManifestReader = new CadesManifestReader();
                 var cadesManifest = cadesManifestReader.FromStream(inputStream);
-                cadesManifest.Should().NotBeNull();
-                cadesManifest.Digests.Count.Should().Be(2);
-                cadesManifest.SignatureFileRef.Should().NotBeNull();
+                cadesManifest.ShouldNotBeNull();
+                cadesManifest.Digests.Count.ShouldBe(2);
+                cadesManifest.SignatureFileRef.ShouldNotBeNull();
             }
         }
 
@@ -104,8 +104,7 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             {
                 var cadesManifestReader = new CadesManifestReader();
                 Func<CadesManifest> action = () => cadesManifestReader.FromStream(inputStream);
-                action.Should().Throw<ManifestReadException>().And.Message.Should()
-                    .Be(CadesManifestReader.ErrorMessageInvalidNamespace);
+                action.ShouldThrow<ManifestReadException>().Message.ShouldBe(CadesManifestReader.ErrorMessageInvalidNamespace);
             }
         }
     }

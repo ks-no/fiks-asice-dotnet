@@ -1,11 +1,10 @@
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
-using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
 using KS.Fiks.ASiC_E.Xsd;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Manifest
@@ -21,21 +20,20 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             fileEntry.Digest = new DigestContainer(new byte[] { 0, 0, 1 }, digestAlgorithm);
             var entries = new[] { fileEntry };
             var manifest = cadesManifestCreator.CreateManifest(entries);
-            manifest.Should().NotBeNull()
-                .And
-                .BeOfType<ManifestContainer>();
-            manifest.Data.Should().NotBeNull();
-            manifest.FileName.Should().Be(AsiceConstants.CadesManifestFilename);
+            manifest.ShouldNotBeNull()
+                .ShouldBeOfType<ManifestContainer>();
+            manifest.Data.ShouldNotBeNull();
+            manifest.FileName.ShouldBe(AsiceConstants.CadesManifestFilename);
 
             var xmlManifest = DeserializeManifest(manifest.Data.ToArray());
-            xmlManifest.Should().NotBeNull();
-            xmlManifest.SigReference.Should().BeNull();
-            xmlManifest.DataObjectReference.Should().HaveCount(1);
-            var dataObjectRef = xmlManifest.DataObjectReference[0];
-            dataObjectRef.Should().NotBeNull();
-            dataObjectRef.MimeType.Should().Be(fileEntry.Type.ToString());
-            dataObjectRef.DigestValue.Should().Equal(fileEntry.Digest.GetDigest());
-            dataObjectRef.URI.Should().Be(fileEntry.FileName);
+            xmlManifest.ShouldNotBeNull();
+            xmlManifest.SigReference.ShouldBeNull();
+            xmlManifest.DataObjectReference.ShouldHaveSingleItem();
+            var dataObjectRef = xmlManifest.DataObjectReference.Single();
+            dataObjectRef.ShouldNotBeNull();
+            dataObjectRef.MimeType.ShouldBe(fileEntry.Type.ToString());
+            dataObjectRef.DigestValue.ShouldBe(fileEntry.Digest.GetDigest());
+            dataObjectRef.URI.ShouldBe(fileEntry.FileName);
         }
 
         [Fact(DisplayName = "Create CAdES manifest with signature")]
@@ -45,15 +43,13 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             var fileEntry = new AsicePackageEntry("my.pdf", MimeType.ForString("application/pdf"), MessageDigestAlgorithm.SHA256);
             fileEntry.Digest = new DigestContainer(new byte[] { 0, 0, 1 }, MessageDigestAlgorithm.SHA256);
             var manifest = cadesManifestCreator.CreateManifest(new[] { fileEntry });
-            manifest.Should().NotBeNull()
-                .And
-                .BeOfType<ManifestContainer>();
-            manifest.FileName.Should().Be(AsiceConstants.CadesManifestFilename);
+            manifest.ShouldNotBeNull().ShouldBeOfType<ManifestContainer>();
+            manifest.FileName.ShouldBe(AsiceConstants.CadesManifestFilename);
             var xmlManifest = DeserializeManifest(manifest.Data.ToArray());
-            xmlManifest.Should().NotBeNull();
-            xmlManifest.SigReference.Should().NotBeNull();
-            xmlManifest.SigReference.MimeType.Should().Be(AsiceConstants.ContentTypeSignature);
-            xmlManifest.DataObjectReference.Should().HaveCount(1);
+            xmlManifest.ShouldNotBeNull();
+            xmlManifest.SigReference.ShouldNotBeNull();
+            xmlManifest.SigReference.MimeType.ShouldBe(AsiceConstants.ContentTypeSignature);
+            xmlManifest.DataObjectReference.ShouldHaveSingleItem();
         }
 
         private static ASiCManifestType DeserializeManifest(byte[] data)

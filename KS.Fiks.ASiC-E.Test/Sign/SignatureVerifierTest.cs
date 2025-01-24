@@ -1,5 +1,5 @@
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Sign;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Sign
@@ -13,7 +13,7 @@ namespace KS.Fiks.ASiC_E.Test.Sign
             var signedData = TestdataLoader.ReadFromResource("signedData.xml");
             var signatureVerifier = new SignatureVerifier();
             var certificate = signatureVerifier.Validate(signedData, signature);
-            certificate.Should().NotBeNull();
+            certificate.ShouldNotBeNull();
         }
     }
 }

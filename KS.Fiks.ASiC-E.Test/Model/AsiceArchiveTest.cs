@@ -3,10 +3,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 using static MimeMapping.MimeUtility;
@@ -55,146 +55,143 @@ public class AsiceArchiveTest
             }
 
             zippedData = zippedOutStream.ToArray();
-            zippedData.Should().NotBeNull();
-            zippedData.Should().HaveCountGreaterThan(0);
-        }
+            zippedData.ShouldNotBeNull();
+            zippedData.Length.ShouldBeGreaterThan(0);
 
-        using (var zipInput = new MemoryStream(zippedData))
-        using (var zippedArchive = new ZipArchive(zipInput, ZipArchiveMode.Read))
-        {
-            zippedArchive.Entries.Should().HaveCount(4);
-            zippedArchive.Entries.First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture))
-                .Should()
-                .NotBeNull();
-            zippedArchive.Entries
-                .First(e => e.FullName.Equals(AsiceConstants.CadesManifestFilename, StringComparison.CurrentCulture))
-                .Should().NotBeNull();
-            zippedArchive.Entries
-                .First(e => e.FullName.Equals(AsiceConstants.FileNameMimeType, StringComparison.CurrentCulture))
-                .Should()
-                .NotBeNull();
-
-            var mimeTypeEntry = zippedArchive.GetEntry(AsiceConstants.FileNameMimeType);
-            using (var entryStream = mimeTypeEntry.Open())
-            using (var copyStream = new MemoryStream())
+            using (var zipInput = new MemoryStream(zippedData))
+            using (var zippedArchive = new ZipArchive(zipInput, ZipArchiveMode.Read))
             {
-                entryStream.CopyTo(copyStream);
-                Encoding.UTF8.GetString(copyStream.ToArray()).Should().Be(AsiceConstants.ContentTypeASiCe);
+                zippedArchive.Entries.Count.ShouldBe(4);
+                zippedArchive.Entries.First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture))
+                    .ShouldNotBeNull();
+                zippedArchive.Entries
+                    .First(e => e.FullName.Equals(AsiceConstants.CadesManifestFilename,
+                        StringComparison.CurrentCulture))
+                    .ShouldNotBeNull();
+                zippedArchive.Entries
+                    .First(e => e.FullName.Equals(AsiceConstants.FileNameMimeType, StringComparison.CurrentCulture))
+                    .ShouldNotBeNull();
+
+                var mimeTypeEntry = zippedArchive.GetEntry(AsiceConstants.FileNameMimeType);
+                using (var entryStream = mimeTypeEntry.Open())
+                using (var copyStream = new MemoryStream())
+                {
+                    entryStream.CopyTo(copyStream);
+                    Encoding.UTF8.GetString(copyStream.ToArray()).ShouldBe(AsiceConstants.ContentTypeASiCe);
+                }
+
+                // Verifies that a CADES manifest has been generated
+                using (var entryStream = zippedArchive.GetEntry(AsiceConstants.CadesManifestFilename).Open())
+                using (var copyStream = new MemoryStream())
+                {
+                    entryStream.CopyTo(copyStream);
+
+                    var manifestXml = Encoding.UTF8.GetString(copyStream.ToArray());
+                    manifestXml.ShouldNotBeNull();
+                    _testOutputHelper.WriteLine($"Manifest: {manifestXml}");
+                }
+
+                var signatureFile = zippedArchive.Entries
+                    .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
+                                e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
+                signatureFile.ShouldNotBeNull();
+
+                // Verifies the signature file
+                using (var entryStream = signatureFile.Open())
+                using (var copyStream = new MemoryStream())
+                {
+                    entryStream.CopyTo(copyStream);
+                    var signatureContent = copyStream.ToArray();
+                    signatureContent.Length.ShouldBeGreaterThan(0);
+                }
             }
 
-            // Verifies that a CADES manifest has been generated
-            using (var entryStream = zippedArchive.GetEntry(AsiceConstants.CadesManifestFilename).Open())
-            using (var copyStream = new MemoryStream())
+            var tempFileName = Path.GetTempFileName();
+            using (var zippedStream = new MemoryStream(zippedData))
+            using (var outputFileStream = File.OpenWrite(tempFileName))
             {
-                entryStream.CopyTo(copyStream);
-
-                var manifestXml = Encoding.UTF8.GetString(copyStream.ToArray());
-                manifestXml.Should().NotBeNull();
-                _testOutputHelper.WriteLine($"Manifest: {manifestXml}");
+                zippedStream.CopyTo(outputFileStream);
             }
 
-            var signatureFile = zippedArchive.Entries
-                .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
-                            e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
-            signatureFile.Should().NotBeNull();
-
-            // Verifies the signature file
-            using (var entryStream = signatureFile.Open())
-            using (var copyStream = new MemoryStream())
-            {
-                entryStream.CopyTo(copyStream);
-                var signatureContent = copyStream.ToArray();
-                signatureContent.Should().HaveCountGreaterThan(0);
-            }
+            _testOutputHelper.WriteLine($"Wrote package to '{tempFileName}'");
         }
-
-        var tempFileName = Path.GetTempFileName();
-        using (var zippedStream = new MemoryStream(zippedData))
-        using (var outputFileStream = File.OpenWrite(tempFileName))
-        {
-            zippedStream.CopyTo(outputFileStream);
-        }
-
-        _testOutputHelper.WriteLine($"Wrote package to '{tempFileName}'");
     }
 
     [Fact(DisplayName = "Create ASiC-E package and add manifest manually")]
-    public void CreateArchiveWithReuseOfZippedOutStream()
-    {
-        using var zippedOutStream = new MemoryStream();
-        using (var archive = new AsiceArchive(
-                   zippedOutStream,
-                   CadesManifestCreator.CreateWithSignatureFile(),
-                   TestdataLoader.ReadCertificatesForTest()))
-        using (var fileStream = File.OpenRead(FileNameTestPdf))
+        public void CreateArchiveWithReuseOfZippedOutStream()
         {
-            archive.AddEntry(
-                fileStream,
-                new FileRef(FileNameTestPdf, MimeType.ForString(GetMimeMapping(FileNameTestPdf))));
-        }
-
-        var zippedData = zippedOutStream.ToArray();
-        zippedData.Should().NotBeNull();
-        zippedData.Should().HaveCountGreaterThan(0);
-
-        Assert.True(zippedOutStream.CanSeek);
-        zippedOutStream.Seek(0, SeekOrigin.Begin);
-
-        using (var zippedArchive = new ZipArchive(zippedOutStream, ZipArchiveMode.Read, leaveOpen: true))
-        {
-            zippedArchive.Entries.Should().HaveCount(4);
-            zippedArchive.Entries
-                .First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture)).Should()
-                .NotBeNull();
-            zippedArchive.Entries.First(e =>
-                    e.FullName.Equals(AsiceConstants.CadesManifestFilename, StringComparison.CurrentCulture))
-                .Should().NotBeNull();
-            zippedArchive.Entries.First(e =>
-                    e.FullName.Equals(AsiceConstants.FileNameMimeType, StringComparison.CurrentCulture))
-                .Should()
-                .NotBeNull();
-
-            var mimeTypeEntry = zippedArchive.GetEntry(AsiceConstants.FileNameMimeType);
-            using (var entryStream = mimeTypeEntry.Open())
-            using (var copyStream = new MemoryStream())
+            using var zippedOutStream = new MemoryStream();
+            using (var archive = new AsiceArchive(
+                       zippedOutStream,
+                       CadesManifestCreator.CreateWithSignatureFile(),
+                       TestdataLoader.ReadCertificatesForTest()))
+            using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
-                entryStream.CopyTo(copyStream);
-                Encoding.UTF8.GetString(copyStream.ToArray()).Should().Be(AsiceConstants.ContentTypeASiCe);
+                archive.AddEntry(
+                    fileStream,
+                    new FileRef(FileNameTestPdf, MimeType.ForString(GetMimeMapping(FileNameTestPdf))));
             }
 
-            // Verifies that a CADES manifest has been generated
-            using (var entryStream = zippedArchive.GetEntry(AsiceConstants.CadesManifestFilename).Open())
-            using (var copyStream = new MemoryStream())
-            {
-                entryStream.CopyTo(copyStream);
+            var zippedData = zippedOutStream.ToArray();
+            zippedData.ShouldNotBeNull();
+            zippedData.Length.ShouldBeGreaterThan(0);
 
-                var manifestXml = Encoding.UTF8.GetString(copyStream.ToArray());
-                manifestXml.Should().NotBeNull();
-                _testOutputHelper.WriteLine($"Manifest: {manifestXml}");
+            Assert.True(zippedOutStream.CanSeek);
+            zippedOutStream.Seek(0, SeekOrigin.Begin);
+
+            using (var zippedArchive = new ZipArchive(zippedOutStream, ZipArchiveMode.Read, leaveOpen: true))
+            {
+                zippedArchive.Entries.Count.ShouldBe(4);
+                zippedArchive.Entries
+                    .First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture)).ShouldNotBeNull();
+                zippedArchive.Entries.First(e =>
+                        e.FullName.Equals(AsiceConstants.CadesManifestFilename, StringComparison.CurrentCulture))
+                    .ShouldNotBeNull();
+                zippedArchive.Entries.First(e =>
+                        e.FullName.Equals(AsiceConstants.FileNameMimeType, StringComparison.CurrentCulture))
+                    .ShouldNotBeNull();
+
+                var mimeTypeEntry = zippedArchive.GetEntry(AsiceConstants.FileNameMimeType);
+                using (var entryStream = mimeTypeEntry.Open())
+                using (var copyStream = new MemoryStream())
+                {
+                    entryStream.CopyTo(copyStream);
+                    Encoding.UTF8.GetString(copyStream.ToArray()).ShouldBe(AsiceConstants.ContentTypeASiCe);
+                }
+
+                // Verifies that a CADES manifest has been generated
+                using (var entryStream = zippedArchive.GetEntry(AsiceConstants.CadesManifestFilename).Open())
+                using (var copyStream = new MemoryStream())
+                {
+                    entryStream.CopyTo(copyStream);
+
+                    var manifestXml = Encoding.UTF8.GetString(copyStream.ToArray());
+                    manifestXml.ShouldNotBeNull();
+                    _testOutputHelper.WriteLine($"Manifest: {manifestXml}");
+                }
+
+                var signatureFile = zippedArchive.Entries
+                    .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
+                                e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
+                signatureFile.ShouldNotBeNull();
+
+                // Verifies the signature file
+                using (var entryStream = signatureFile.Open())
+                using (var copyStream = new MemoryStream())
+                {
+                    entryStream.CopyTo(copyStream);
+                    var signatureContent = copyStream.ToArray();
+                    signatureContent.Length.ShouldBeGreaterThan(0);
+                }
             }
 
-            var signatureFile = zippedArchive.Entries
-                .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
-                            e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
-            signatureFile.Should().NotBeNull();
-
-            // Verifies the signature file
-            using (var entryStream = signatureFile.Open())
-            using (var copyStream = new MemoryStream())
+            var tempFileName = Path.GetTempFileName();
+            zippedOutStream.Seek(0, SeekOrigin.Begin);
+            using (var outputFileStream = File.OpenWrite(tempFileName))
             {
-                entryStream.CopyTo(copyStream);
-                var signatureContent = copyStream.ToArray();
-                signatureContent.Should().HaveCountGreaterThan(0);
+                zippedOutStream.CopyTo(outputFileStream);
             }
-        }
 
-        var tempFileName = Path.GetTempFileName();
-        zippedOutStream.Seek(0, SeekOrigin.Begin);
-        using (var outputFileStream = File.OpenWrite(tempFileName))
-        {
-            zippedOutStream.CopyTo(outputFileStream);
+            _testOutputHelper.WriteLine($"Wrote package to '{tempFileName}'");
         }
-
-        _testOutputHelper.WriteLine($"Wrote package to '{tempFileName}'");
     }
-}

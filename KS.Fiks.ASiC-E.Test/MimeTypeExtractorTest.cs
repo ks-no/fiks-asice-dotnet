@@ -1,6 +1,6 @@
 using System;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Model;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test
@@ -18,11 +18,8 @@ namespace KS.Fiks.ASiC_E.Test
         {
             var type = MimeTypeExtractor.ExtractMimeType(fileName);
 
-            type.Should()
-                .NotBeNull()
-                .And
-                .BeOfType<MimeType>();
-            type.ToString().Should().Be(mimeType);
+            type.ShouldNotBeNull().ShouldBeOfType<MimeType>();
+            type.ToString().ShouldBe(mimeType);
         }
 
         [Fact(DisplayName = "Extract MIME type for PDF")]
@@ -30,12 +27,8 @@ namespace KS.Fiks.ASiC_E.Test
         {
             var pdfType = MimeTypeExtractor.ExtractMimeType("filename.pdf");
 
-            pdfType.Should()
-                .NotBeNull()
-                .And
-                .BeOfType<MimeType>();
-
-            pdfType.ToString().Should().Be("application/pdf");
+            pdfType.ShouldNotBeNull().ShouldBeOfType<MimeType>();
+            pdfType.ToString().ShouldBe("application/pdf");
         }
 
         [Theory(DisplayName = "Test MIME type extraction for unknown types (fallbacks to application/octet-stream)")]
@@ -45,19 +38,16 @@ namespace KS.Fiks.ASiC_E.Test
         public void TestIllegalMimeType(string fileName)
         {
             var type = MimeTypeExtractor.ExtractMimeType(fileName);
-            type.Should()
-                .NotBeNull()
-                .And
-                .BeOfType<MimeType>();
+            type.ShouldNotBeNull().ShouldBeOfType<MimeType>();
 
-            type.ToString().Should().Be(MimeMapping.MimeUtility.UnknownMimeType);
+            type.ToString().ShouldBe(MimeMapping.MimeUtility.UnknownMimeType);
         }
 
         [Fact(DisplayName = "Test using null")]
         public void TestNull()
         {
             Action action = () => MimeTypeExtractor.ExtractMimeType(null);
-            action.Should().Throw<ArgumentNullException>();
+            action.ShouldThrow<ArgumentNullException>();
         }
     }
 }

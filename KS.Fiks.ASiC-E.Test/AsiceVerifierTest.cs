@@ -1,5 +1,5 @@
 using System.IO;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test
@@ -14,12 +14,12 @@ namespace KS.Fiks.ASiC_E.Test
             using (var inputStream = new MemoryStream(asiceArchive))
             {
                 var asicManifest = asiceVerifier.Verify(inputStream);
-                asicManifest.Should().NotBeNull();
-                asicManifest.certificate.Should().NotBeNull();
-                asicManifest.certificate.Length.Should().Be(1);
-                asicManifest.file.Should().NotBeNull();
-                asicManifest.file.Length.Should().Be(2);
-                asicManifest.rootfile.Should().BeNull();
+                asicManifest.ShouldNotBeNull();
+                asicManifest.certificate.ShouldNotBeNull();
+                asicManifest.certificate.Length.ShouldBe(1);
+                asicManifest.file.ShouldNotBeNull();
+                asicManifest.file.Length.ShouldBe(2);
+                asicManifest.rootfile.ShouldBeNull();
             }
         }
     }

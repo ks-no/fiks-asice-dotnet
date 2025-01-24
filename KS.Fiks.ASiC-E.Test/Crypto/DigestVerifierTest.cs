@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using FluentAssertions;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
+using Shouldly;
 using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test.Crypto
@@ -29,8 +29,8 @@ namespace KS.Fiks.ASiC_E.Test.Crypto
         {
             var digestVerifier = DigestVerifier.Create(ImmutableDictionary<string, DeclaredDigestFile>.Empty);
             var verification = digestVerifier.Verification();
-            verification.Should().NotBeNull();
-            verification.AllValid.Should().BeTrue();
+            verification.ShouldNotBeNull();
+            verification.AllValid.ShouldBeTrue();
         }
 
         [Fact(DisplayName = "Verify digest, multiple declared none received")]
@@ -40,8 +40,7 @@ namespace KS.Fiks.ASiC_E.Test.Crypto
 
             Func<DigestVerificationResult> action = () => digestVerifier.Verification();
 
-            action.Should().Throw<DigestVerificationException>().And.Message.Should()
-                .Be("Total number of files processed by the verifier was 0, but 2 files was declared");
+            action.ShouldThrow<DigestVerificationException>().Message.ShouldBe("Total number of files processed by the verifier was 0, but 2 files was declared");
         }
 
         [Fact(DisplayName = "Verify digest, two declared but only one checked")]
@@ -50,8 +49,7 @@ namespace KS.Fiks.ASiC_E.Test.Crypto
             var digestVerifier = CreateDigestVerifierForTest();
             digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
             Func<DigestVerificationResult> action = () => digestVerifier.Verification();
-            action.Should().Throw<DigestVerificationException>().And.Message.Should()
-                .Be("Total number of files processed by the verifier was 1, but 2 files was declared");
+            action.ShouldThrow<DigestVerificationException>().Message.ShouldBe("Total number of files processed by the verifier was 1, but 2 files was declared");
         }
 
         [Fact(DisplayName = "Verify digests, two declared and two checked but with non-matching digests")]
@@ -61,8 +59,8 @@ namespace KS.Fiks.ASiC_E.Test.Crypto
             digestVerifier.ReceiveDigest(FileOne.Name, FileTwo.Digest.ToArray());
             digestVerifier.ReceiveDigest(FileTwo.Name, FileOne.Digest.ToArray());
             var result = digestVerifier.Verification();
-            result.AllValid.Should().BeFalse();
-            result.InvalidElements.Count().Should().Be(2);
+            result.AllValid.ShouldBeFalse();
+            result.InvalidElements.Count().ShouldBe(2);
         }
 
         [Fact(DisplayName = "Verify digests, all checked and valid")]
@@ -72,9 +70,9 @@ namespace KS.Fiks.ASiC_E.Test.Crypto
             digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
             digestVerifier.ReceiveDigest(FileTwo.Name, FileTwo.Digest.ToArray());
             var result = digestVerifier.Verification();
-            result.AllValid.Should().BeTrue();
-            result.ValidElements.Count().Should().Be(2);
-            result.ValidElements.Should().Contain(FileOne.Name, FileTwo.Name);
+            result.AllValid.ShouldBeTrue();
+            result.ValidElements.Count().ShouldBe(2);
+            result.ValidElements.ShouldContain(FileOne.Name, FileTwo.Name);
         }
 
         private static DigestVerifier CreateDigestVerifierForTest()
