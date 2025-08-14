@@ -12,12 +12,17 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
     private readonly AsiceArchive _asiceArchive;
 
     private static IManifestCreator FindManifestCreator(
-        ManifestSpec spec)
-    => spec switch
+        ManifestSpec spec,
+        Func<IManifestCreator> makeManifestCreator)
+    => makeManifestCreator != null
+        ? makeManifestCreator() ?? throw new InvalidOperationException(
+            "makeManifestCreator() returned null")
+        : spec switch
         {
             // TODO: A standard XAdES manifest has not been implemented
             // yet, since the initial usecase for XAdES required a
-            // custom manifest format
+            // custom manifest format, for which the makeManifestCreator
+            // function parameter was introduced.
             ManifestSpec.Cades => new CadesManifestCreator(),
             _ => throw new ArgumentException(
                 "Only CAdES-style manifests are currently supported."),
@@ -82,13 +87,16 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
     /// <param name="messageDigestAlgorithm">The digest algorithm to use. Not nullable</param>
     /// <param name="manifestSpec">An enum saying the type of signature to add</param>
     /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
+    /// <param name="makeManifestCreator">Function that returns an object that can create custom
+    /// manifests; default null to get standard behaviour</param>
     /// <returns>A builder that may be used to construct a ASiC-E package</returns>
     /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
     public static AsiceBuilder Create(
         Stream stream,
         MessageDigestAlgorithm messageDigestAlgorithm,
         ManifestSpec manifestSpec,
-        ICertificateHolder signCertificate)
+        ICertificateHolder signCertificate,
+        Func<IManifestCreator> makeManifestCreator = null)
     {
         var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
         var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
@@ -99,7 +107,7 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
 
         var sigCreator = FindSignatureCreator(manifestSpec, signCertificate);
         var sigFileRefCreator = FindSignatureFileRefCreator(manifestSpec, signCertificate);
-        var manifestCreator = FindManifestCreator(manifestSpec);
+        var manifestCreator = FindManifestCreator(manifestSpec, makeManifestCreator);
 
         return new AsiceBuilder(new AsiceArchive(
             outStream,
