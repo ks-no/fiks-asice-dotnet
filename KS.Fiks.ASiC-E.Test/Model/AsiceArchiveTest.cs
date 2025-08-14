@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -67,6 +68,9 @@ public class AsiceArchiveTest
 
     private void TestArchive(ICertificateHolder certHolder, ManifestSpec spec)
     {
+        var signingTimeStamp = DateTime.Parse(
+            "2025-07-27T15:53:18",
+            CultureInfo.InvariantCulture);
         byte[] zippedData;
         using (var zippedOutStream = new MemoryStream())
         {
@@ -82,7 +86,7 @@ public class AsiceArchiveTest
                 ? null
                 : (spec == ManifestSpec.Cades
                     ? SignatureCreator.Create(certHolder)
-                    : XadesSignatureCreator.Create(certHolder));
+                    : XadesSignatureCreator.Create(certHolder, () => signingTimeStamp));
 
             // Perhaps not realistic to use a CAdES manifest with both CAdES
             // and XAdES signatures, but in the absence of a distinct XAdES

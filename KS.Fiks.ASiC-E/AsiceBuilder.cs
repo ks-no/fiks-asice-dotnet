@@ -43,13 +43,14 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
 
     private static ISignatureCreator FindSignatureCreator(
       ManifestSpec spec,
-      ICertificateHolder certificateHolder)
+      ICertificateHolder certificateHolder,
+      Func<DateTime> getUtcNow)
     => (certificateHolder == null)
         ? null
         : spec switch
         {
             ManifestSpec.Cades => SignatureCreator.Create(certificateHolder),
-            ManifestSpec.Xades => XadesSignatureCreator.Create(certificateHolder),
+            ManifestSpec.Xades => XadesSignatureCreator.Create(certificateHolder, getUtcNow),
             _ => throw new ArgumentException(
                 "Only CAdES-style manifests are currently supported."),
         };
@@ -89,6 +90,9 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
     /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
     /// <param name="makeManifestCreator">Function that returns an object that can create custom
     /// manifests; default null to get standard behaviour</param>
+    /// <param name="getUtcNow">Function that returns a DateTime object for the current
+    /// time; used for registering the time of signing in the signature in XAdES. If null,
+    /// DateTime.UtcNow will be used.</param>
     /// <returns>A builder that may be used to construct a ASiC-E package</returns>
     /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
     public static AsiceBuilder Create(
@@ -96,7 +100,8 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
         MessageDigestAlgorithm messageDigestAlgorithm,
         ManifestSpec manifestSpec,
         ICertificateHolder signCertificate,
-        Func<IManifestCreator> makeManifestCreator = null)
+        Func<IManifestCreator> makeManifestCreator = null,
+        Func<DateTime> getUtcNow = null)
     {
         var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
         var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
@@ -105,7 +110,7 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
             throw new ArgumentException("The provided Stream must be writable", nameof(stream));
         }
 
-        var sigCreator = FindSignatureCreator(manifestSpec, signCertificate);
+        var sigCreator = FindSignatureCreator(manifestSpec, signCertificate, getUtcNow);
         var sigFileRefCreator = FindSignatureFileRefCreator(manifestSpec, signCertificate);
         var manifestCreator = FindManifestCreator(manifestSpec, makeManifestCreator);
 

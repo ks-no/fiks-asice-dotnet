@@ -21,9 +21,10 @@ namespace KS.Fiks.ASiC_E.Sign
     public class XadesSignatureCreator : ISignatureCreator
     {
         public static XadesSignatureCreator Create(
-            ICertificateHolder certificateHolder)
+            ICertificateHolder certificateHolder,
+            Func<DateTime> getUtcNow)
         {
-            return new XadesSignatureCreator(certificateHolder);
+            return new XadesSignatureCreator(certificateHolder, getUtcNow);
         }
 
         // Misc:
@@ -117,6 +118,7 @@ namespace KS.Fiks.ASiC_E.Sign
         };
 
         private readonly ICertificateHolder _certificateHolder;
+        private readonly Func<DateTime> _getUtcNow;
 
         private static byte[] MakeHash(byte[] bytes, string algorithm)
         {
@@ -353,8 +355,18 @@ namespace KS.Fiks.ASiC_E.Sign
         }
 
         public XadesSignatureCreator(
-            ICertificateHolder certificateHolder)
+            ICertificateHolder certificateHolder,
+            Func<DateTime> getUtcNow)
         {
+            if (getUtcNow == null)
+            {
+                _getUtcNow = () => DateTime.UtcNow;
+            }
+            else
+            {
+                _getUtcNow = getUtcNow;
+            }
+
             _certificateHolder = certificateHolder ??
                 throw new ArgumentNullException(nameof(certificateHolder));
         }
