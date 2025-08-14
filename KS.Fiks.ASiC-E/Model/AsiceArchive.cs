@@ -141,8 +141,24 @@ public class AsiceArchive : IDisposable
 
     protected virtual void Dispose(bool dispose)
     {
+        // In cases where both a manifest and a signature should be added,
+        // there is a seeming circular dependency:
+        //
+        // * The manifest needs to know about the signature.
+        // * The signature needs to know about the manifest.
+        //
+        // However, the manifest only needs to know about the location of the
+        // signature, not its contents; while the signature needs to know
+        // about the contents of the manifest in order to hash that manifest
+        // in order to include it. Therefore, the manifest is created before
+        // the signature, but the *location* of the signature is determined
+        // before either of them.
+        //
+        // If signatureFileRef is null, it means no signature should be
+        // created, which is handled inside AddSignature().
         var signatureFileRef = _signatureFileRefCreator?.CreateSignatureRef();
-        AddManifest(signatureFileRef);
+        var manifestContainer = AddManifest(signatureFileRef);
+        AddSignature(manifestContainer);
         _zipArchive.Dispose();
     }
 
@@ -160,27 +176,49 @@ public class AsiceArchive : IDisposable
         return entry;
     }
 
-    private void AddManifest(SignatureFileRef signatureFileRef)
+    private ManifestContainer AddManifest(SignatureFileRef signatureFileRef)
     {
         _logger.LogDebug("Creating manifest");
-        var manifest =  _manifestCreator.CreateManifest(_entries, signatureFileRef);
-        if (manifest.ManifestSpec == ManifestSpec.Cades && signatureFileRef != null)
-        {
-            manifest.SignatureFileRef = signatureFileRef;
-            var signatureFile = SignatureCreator.Create(_signatureCertificate).CreateSignatureFile(manifest, _entries);
-            using var signatureStream = new MemoryStream(signatureFile.Data.ToArray());
-            var entry = _zipArchive.CreateEntry(signatureFile.SignatureFileRef.FileName);
-            using var zipEntryStream = entry.Open();
-            signatureStream.CopyTo(zipEntryStream);
-        }
+        var manifest = _manifestCreator.CreateManifest(_entries, signatureFileRef);
+
+        // TODO: Add a MimeType property on ManifestContainer instead, so that
+        // the following call doesn't need to assume that all manifests will
+        // be XML always. For now, though, this works.
+        var manifestPkgEntry = new AsicePackageEntry(
+            manifest.FileName,
+            MimeType.ForString(AsiceConstants.ContentTypeApplicationXml),
+            _messageDigestAlgorithm);
+
+        manifest.PackageEntry = manifestPkgEntry;
 
         using (var manifestStream = new MemoryStream(manifest.Data.ToArray()))
         {
-            CreateEntry(manifestStream,
-                new AsicePackageEntry(manifest.FileName, MimeType.ForString(AsiceConstants.ContentTypeXml),
-                    _messageDigestAlgorithm));
+            CreateEntry(manifestStream, manifestPkgEntry);
         }
 
         _logger.LogDebug("Manifest added to archive");
+        return manifest;
+    }
+
+    private void AddSignature(ManifestContainer manifest)
+    {
+        if (manifest.SignatureFileRef == null)
+        {
+            return;
+        }
+
+        var sigFileContainer = _signatureCreator?.CreateSignatureFile(
+            manifest,
+            _entries);
+
+        if (sigFileContainer == null)
+        {
+            return;
+        }
+
+        using var signatureStream = new MemoryStream(sigFileContainer.Data.ToArray());
+        var entry = _zipArchive.CreateEntry(sigFileContainer.SignatureFileRef.FileName);
+        using var zipEntryStream = entry.Open();
+        signatureStream.CopyTo(zipEntryStream);
     }
 }

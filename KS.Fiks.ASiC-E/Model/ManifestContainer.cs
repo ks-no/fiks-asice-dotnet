@@ -11,6 +11,8 @@ namespace KS.Fiks.ASiC_E.Model
 
         public IEnumerable<byte> Data { get; }
 
+        public AsicePackageEntry PackageEntry { get; set; }
+
         public ManifestSpec ManifestSpec { get; }
 
         public ManifestContainer(string fileName, IEnumerable<byte> data, SignatureFileRef signatureFileRef, ManifestSpec manifestSpec)
