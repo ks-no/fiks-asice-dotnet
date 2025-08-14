@@ -15,6 +15,9 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
         ManifestSpec spec)
     => spec switch
         {
+            // TODO: A standard XAdES manifest has not been implemented
+            // yet, since the initial usecase for XAdES required a
+            // custom manifest format
             ManifestSpec.Cades => new CadesManifestCreator(),
             _ => throw new ArgumentException(
                 "Only CAdES-style manifests are currently supported."),
@@ -28,6 +31,7 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
         : spec switch
         {
             ManifestSpec.Cades => new CadesSignature(),
+            ManifestSpec.Xades => new XadesSignature(),
             _ => throw new ArgumentException(
                 "Only CAdES-style manifests are currently supported."),
         };
@@ -40,6 +44,7 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
         : spec switch
         {
             ManifestSpec.Cades => SignatureCreator.Create(certificateHolder),
+            ManifestSpec.Xades => XadesSignatureCreator.Create(certificateHolder),
             _ => throw new ArgumentException(
                 "Only CAdES-style manifests are currently supported."),
         };
