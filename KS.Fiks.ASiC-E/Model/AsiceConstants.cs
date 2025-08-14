@@ -16,5 +16,6 @@ namespace KS.Fiks.ASiC_E.Model
         public const string SignatureAlgorithm = "SHA256WithRSA";
         public const string CadesManifestFilename = "META-INF/asicmanifest.xml";
         public static readonly MimeType MimeTypeCadesSignature = MimeType.ForString(ContentTypeSignature);
+        public static readonly MimeType MimeTypeXadesSignature = MimeType.ForString(ContentTypeApplicationXml);
     }
 }
