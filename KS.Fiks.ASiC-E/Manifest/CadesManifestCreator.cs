@@ -38,7 +38,7 @@ namespace KS.Fiks.ASiC_E.Manifest
             SignatureFileRef signatureFileRef = null;
             if (addSignatureFile)
             {
-                signatureFileRef = CadesSignature.CreateSignatureRef();
+                signatureFileRef = new CadesSignature().CreateSignatureRef();
                 manifest.SigReference = new SigReferenceType
                 {
                     MimeType = signatureFileRef.MimeType.ToString(), URI = signatureFileRef.FileName
