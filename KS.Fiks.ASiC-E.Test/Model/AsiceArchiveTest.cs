@@ -38,14 +38,23 @@ public class AsiceArchiveTest
         TestArchive(certHolder);
     }
 
+    [Fact(DisplayName = "Create ASiC-E package with null ICertificateHolder")]
+    public void CreateArchiveWithoutCertificateHolder()
+    {
+        TestArchive(null);
+    }
+
     private void TestArchive(ICertificateHolder certHolder)
     {
         byte[] zippedData;
         using (var zippedOutStream = new MemoryStream())
         {
+            var cadesManifestCreator = certHolder == null
+                ? CadesManifestCreator.CreateWithoutSignatureFile()
+                : CadesManifestCreator.CreateWithSignatureFile();
             using (var archive = new AsiceArchive(
                        zippedOutStream,
-                       CadesManifestCreator.CreateWithSignatureFile(),
+                       cadesManifestCreator,
                        certHolder))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
@@ -61,7 +70,7 @@ public class AsiceArchiveTest
             using (var zipInput = new MemoryStream(zippedData))
             using (var zippedArchive = new ZipArchive(zipInput, ZipArchiveMode.Read))
             {
-                zippedArchive.Entries.Count.ShouldBe(4);
+                zippedArchive.Entries.Count.ShouldBe(certHolder == null ? 3 : 4);
                 zippedArchive.Entries.First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture))
                     .ShouldNotBeNull();
                 zippedArchive.Entries
@@ -91,18 +100,21 @@ public class AsiceArchiveTest
                     _testOutputHelper.WriteLine($"Manifest: {manifestXml}");
                 }
 
-                var signatureFile = zippedArchive.Entries
-                    .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
-                                e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
-                signatureFile.ShouldNotBeNull();
-
-                // Verifies the signature file
-                using (var entryStream = signatureFile.Open())
-                using (var copyStream = new MemoryStream())
+                if (certHolder != null)
                 {
-                    entryStream.CopyTo(copyStream);
-                    var signatureContent = copyStream.ToArray();
-                    signatureContent.Length.ShouldBeGreaterThan(0);
+                    var signatureFile = zippedArchive.Entries
+                        .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
+                                    e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
+                    signatureFile.ShouldNotBeNull();
+
+                    // Verifies the signature file
+                    using (var entryStream = signatureFile.Open())
+                    using (var copyStream = new MemoryStream())
+                    {
+                        entryStream.CopyTo(copyStream);
+                        var signatureContent = copyStream.ToArray();
+                        signatureContent.Length.ShouldBeGreaterThan(0);
+                    }
                 }
             }
 
