@@ -113,8 +113,7 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
             outStream,
             manifestCreator,
             sigFileRefCreator,
-            sigCreator,
-            signCertificate));
+            sigCreator));
     }
 
     public AsiceArchive Build()

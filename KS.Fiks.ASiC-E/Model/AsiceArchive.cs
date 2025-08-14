@@ -25,8 +25,6 @@ public class AsiceArchive : IDisposable
 
     private readonly MessageDigestAlgorithm _messageDigestAlgorithm;
 
-    private readonly ICertificateHolder _signatureCertificate;
-
     private readonly Queue<AsicePackageEntry> _entries = new Queue<AsicePackageEntry>();
 
     private readonly ILogger<AsiceArchive> _logger;
@@ -36,7 +34,6 @@ public class AsiceArchive : IDisposable
         IManifestCreator creator,
         ISignatureFileRefCreator signatureFileRefCreator,
         MessageDigestAlgorithm messageDigestAlgorithm,
-        ICertificateHolder signatureCertificate,
         ISignatureCreator signatureCreator,
         ILoggerFactory loggerFactory = null)
     {
@@ -44,20 +41,6 @@ public class AsiceArchive : IDisposable
         _manifestCreator = creator ?? throw new ArgumentNullException(nameof(creator));
         _messageDigestAlgorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
 
-        // The certificate holder and the signature file ref creator need to be
-        // null at the same time and non-null at the same time:
-        if ((signatureCertificate == null) != (signatureFileRefCreator == null))
-        {
-            var nullArgName = signatureCertificate == null
-                ? nameof(signatureCertificate)
-                : nameof(signatureFileRefCreator);
-
-            throw new ArgumentNullException(
-                nullArgName,
-                $"{nameof(signatureCertificate)} must be null if and only if {nameof(signatureFileRefCreator)} is null");
-        }
-
-        _signatureCertificate = signatureCertificate;
         _signatureFileRefCreator = signatureFileRefCreator;
         _signatureCreator = signatureCreator;
 
@@ -70,7 +53,6 @@ public class AsiceArchive : IDisposable
         IManifestCreator creator,
         ISignatureFileRefCreator signatureFileRefCreator,
         ISignatureCreator signatureCreator,
-        ICertificateHolder signatureCertificateHolder,
         ILoggerFactory loggerFactory = null)
     {
         if (zipOutStream == null)
@@ -88,20 +70,6 @@ public class AsiceArchive : IDisposable
         _manifestCreator = creator ?? throw new ArgumentNullException(nameof(creator));
         _messageDigestAlgorithm = MessageDigestAlgorithm.SHA256;
 
-        // The certificate holder and the signature file ref creator need to be
-        // null at the same time and non-null at the same time:
-        if ((signatureCertificateHolder == null) != (signatureFileRefCreator == null))
-        {
-            var nullArgName = signatureCertificateHolder == null
-                ? nameof(signatureCertificateHolder)
-                : nameof(signatureFileRefCreator);
-
-            throw new ArgumentNullException(
-                nullArgName,
-                $"{nameof(signatureCertificateHolder)} must be null if and only if {nameof(signatureFileRefCreator)} is null");
-        }
-
-        _signatureCertificate = signatureCertificateHolder;
         _signatureFileRefCreator = signatureFileRefCreator;
         _signatureCreator = signatureCreator;
 

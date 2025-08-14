@@ -63,8 +63,7 @@ public class AsiceArchiveTest
                 zippedOutStream,
                 cadesManifestCreator,
                 signatureFileRefCreator,
-                signatureCreator,
-                certHolder))
+                signatureCreator))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
                 archive.AddEntry(
@@ -150,8 +149,7 @@ public class AsiceArchiveTest
                 zippedOutStream,
                 cadesManifestCreator,
                 signatureFileRefCreator,
-                signatureCreator,
-                certHolder))
+                signatureCreator))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
                 archive.AddEntry(
