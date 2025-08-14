@@ -6,6 +6,7 @@ using System.Text;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using KS.Fiks.ASiC_E.Sign;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,12 +50,15 @@ public class AsiceArchiveTest
         byte[] zippedData;
         using (var zippedOutStream = new MemoryStream())
         {
-            var cadesManifestCreator = certHolder == null
-                ? CadesManifestCreator.CreateWithoutSignatureFile()
-                : CadesManifestCreator.CreateWithSignatureFile();
+            // signatureFileRefCreator should be null if and only if certHolder is null:
+            var signatureFileRefCreator = certHolder == null
+                ? null
+                : new CadesSignature();
+            var cadesManifestCreator = new CadesManifestCreator();
             using (var archive = new AsiceArchive(
                        zippedOutStream,
                        cadesManifestCreator,
+                       signatureFileRefCreator,
                        certHolder))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
@@ -133,9 +137,12 @@ public class AsiceArchiveTest
         public void CreateArchiveWithReuseOfZippedOutStream()
         {
             using var zippedOutStream = new MemoryStream();
+            var cadesManifestCreator = new CadesManifestCreator();
+            var signatureFileRefCreator = new CadesSignature();
             using (var archive = new AsiceArchive(
                        zippedOutStream,
-                       CadesManifestCreator.CreateWithSignatureFile(),
+                       cadesManifestCreator,
+                       signatureFileRefCreator,
                        TestdataLoader.ReadCertificatesForTest()))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {

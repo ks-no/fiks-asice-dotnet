@@ -6,7 +6,9 @@ namespace KS.Fiks.ASiC_E.Manifest
 {
     public abstract class AbstractManifestCreator : IManifestCreator
     {
-        public abstract ManifestContainer CreateManifest(IEnumerable<AsicePackageEntry> entries);
+        public abstract ManifestContainer CreateManifest(
+            IEnumerable<AsicePackageEntry> entries,
+            SignatureFileRef signatureFileRef);
 
         protected static SignatureFileRef CreateSignatureRef()
         {

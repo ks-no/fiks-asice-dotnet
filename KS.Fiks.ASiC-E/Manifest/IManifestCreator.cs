@@ -5,6 +5,8 @@ namespace KS.Fiks.ASiC_E.Manifest
 {
     public interface IManifestCreator
     {
-        ManifestContainer CreateManifest(IEnumerable<AsicePackageEntry> entries);
+        ManifestContainer CreateManifest(
+            IEnumerable<AsicePackageEntry> entries,
+            SignatureFileRef signatureFileRef);
     }
 }

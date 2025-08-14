@@ -3,6 +3,7 @@ using System.IO;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using KS.Fiks.ASiC_E.Sign;
 
 namespace KS.Fiks.ASiC_E;
 
@@ -35,10 +36,16 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
             throw new ArgumentException("The provided Stream must be writable", nameof(stream));
         }
 
-        var cadesManifestCreator = signCertificate == null
-            ? CadesManifestCreator.CreateWithoutSignatureFile()
-            : CadesManifestCreator.CreateWithSignatureFile();
-        return new AsiceBuilder(new AsiceArchive(outStream, cadesManifestCreator, signCertificate));
+        var sigFileRefCreator = signCertificate == null
+            ? null
+            : new CadesSignature();
+        var cadesManifestCreator = new CadesManifestCreator();
+
+        return new AsiceBuilder(new AsiceArchive(
+            outStream,
+            cadesManifestCreator,
+            sigFileRefCreator,
+            signCertificate));
     }
 
     public AsiceArchive Build()

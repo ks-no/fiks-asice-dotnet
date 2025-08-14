@@ -19,6 +19,8 @@ public class AsiceArchive : IDisposable
 
     private readonly IManifestCreator _manifestCreator;
 
+    private readonly ISignatureFileRefCreator _signatureFileRefCreator;
+
     private readonly MessageDigestAlgorithm _messageDigestAlgorithm;
 
     private readonly ICertificateHolder _signatureCertificate;
@@ -27,18 +29,44 @@ public class AsiceArchive : IDisposable
 
     private readonly ILogger<AsiceArchive> _logger;
 
-    public AsiceArchive(ZipArchive zipArchive, IManifestCreator creator, MessageDigestAlgorithm messageDigestAlgorithm, ICertificateHolder signatureCertificate, ILoggerFactory loggerFactory = null)
+    public AsiceArchive(
+        ZipArchive zipArchive,
+        IManifestCreator creator,
+        ISignatureFileRefCreator signatureFileRefCreator,
+        MessageDigestAlgorithm messageDigestAlgorithm,
+        ICertificateHolder signatureCertificate,
+        ILoggerFactory loggerFactory = null)
     {
         _zipArchive = zipArchive ?? throw new ArgumentNullException(nameof(zipArchive));
         _manifestCreator = creator ?? throw new ArgumentNullException(nameof(creator));
         _messageDigestAlgorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
+
+        // The certificate holder and the signature file ref creator need to be
+        // null at the same time and non-null at the same time:
+        if ((signatureCertificate == null) != (signatureFileRefCreator== null))
+        {
+            var nullArgName = signatureCertificate == null
+                ? nameof(signatureCertificate)
+                : nameof(signatureFileRefCreator);
+
+            throw new ArgumentNullException(
+                nullArgName,
+                $"{nameof(signatureCertificate)} must be null if and only if {nameof(signatureFileRefCreator)} is null");
+        }
+
         _signatureCertificate = signatureCertificate;
+        _signatureFileRefCreator = signatureFileRefCreator;
 
         _logger = loggerFactory?.CreateLogger<AsiceArchive>() ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AsiceArchive>();
         _logger.LogDebug("Creating ASiC-e Zip");
     }
 
-    public AsiceArchive(Stream zipOutStream, IManifestCreator creator, ICertificateHolder signatureCertificateHolder, ILoggerFactory loggerFactory = null)
+    public AsiceArchive(
+        Stream zipOutStream,
+        IManifestCreator creator,
+        ISignatureFileRefCreator signatureFileRefCreator,
+        ICertificateHolder signatureCertificateHolder,
+        ILoggerFactory loggerFactory = null)
     {
         if (zipOutStream == null)
         {
@@ -54,7 +82,22 @@ public class AsiceArchive : IDisposable
 
         _manifestCreator = creator ?? throw new ArgumentNullException(nameof(creator));
         _messageDigestAlgorithm = MessageDigestAlgorithm.SHA256;
+
+        // The certificate holder and the signature file ref creator need to be
+        // null at the same time and non-null at the same time:
+        if ((signatureCertificateHolder == null) != (signatureFileRefCreator== null))
+        {
+            var nullArgName = signatureCertificateHolder == null
+                ? nameof(signatureCertificateHolder)
+                : nameof(signatureFileRefCreator);
+
+            throw new ArgumentNullException(
+                nullArgName,
+                $"{nameof(signatureCertificateHolder)} must be null if and only if {nameof(signatureFileRefCreator)} is null");
+        }
+
         _signatureCertificate = signatureCertificateHolder;
+        _signatureFileRefCreator = signatureFileRefCreator;
 
         _logger = loggerFactory?.CreateLogger<AsiceArchive>() ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AsiceArchive>();
         _logger.LogDebug("Creating ASiC-e Zip");
@@ -92,7 +135,8 @@ public class AsiceArchive : IDisposable
 
     protected virtual void Dispose(bool dispose)
     {
-        AddManifest();
+        var signatureFileRef = _signatureFileRefCreator?.CreateSignatureRef();
+        AddManifest(signatureFileRef);
         _zipArchive.Dispose();
     }
 
@@ -110,14 +154,14 @@ public class AsiceArchive : IDisposable
         return entry;
     }
 
-    private void AddManifest()
+    private void AddManifest(SignatureFileRef signatureFileRef)
     {
         _logger.LogDebug("Creating manifest");
-        var manifest = CreateManifest();
-        if (manifest.ManifestSpec == ManifestSpec.Cades && manifest.SignatureFileRef != null)
+        var manifest =  _manifestCreator.CreateManifest(_entries, signatureFileRef);
+        if (manifest.ManifestSpec == ManifestSpec.Cades && signatureFileRef != null)
         {
+            manifest.SignatureFileRef = signatureFileRef;
             var signatureFile = SignatureCreator.Create(_signatureCertificate).CreateCadesSignatureFile(manifest);
-            manifest.SignatureFileRef = signatureFile.SignatureFileRef;
             using var signatureStream = new MemoryStream(signatureFile.Data.ToArray());
             var entry = _zipArchive.CreateEntry(signatureFile.SignatureFileRef.FileName);
             using var zipEntryStream = entry.Open();
@@ -132,10 +176,5 @@ public class AsiceArchive : IDisposable
         }
 
         _logger.LogDebug("Manifest added to archive");
-    }
-
-    private ManifestContainer CreateManifest()
-    {
-        return _manifestCreator.CreateManifest(_entries);
     }
 }
