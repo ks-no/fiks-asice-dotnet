@@ -19,6 +19,8 @@ public class AsiceArchive : IDisposable
 
     private readonly IManifestCreator _manifestCreator;
 
+    private readonly ISignatureCreator _signatureCreator;
+
     private readonly ISignatureFileRefCreator _signatureFileRefCreator;
 
     private readonly MessageDigestAlgorithm _messageDigestAlgorithm;
@@ -35,6 +37,7 @@ public class AsiceArchive : IDisposable
         ISignatureFileRefCreator signatureFileRefCreator,
         MessageDigestAlgorithm messageDigestAlgorithm,
         ICertificateHolder signatureCertificate,
+        ISignatureCreator signatureCreator,
         ILoggerFactory loggerFactory = null)
     {
         _zipArchive = zipArchive ?? throw new ArgumentNullException(nameof(zipArchive));
@@ -43,7 +46,7 @@ public class AsiceArchive : IDisposable
 
         // The certificate holder and the signature file ref creator need to be
         // null at the same time and non-null at the same time:
-        if ((signatureCertificate == null) != (signatureFileRefCreator== null))
+        if ((signatureCertificate == null) != (signatureFileRefCreator == null))
         {
             var nullArgName = signatureCertificate == null
                 ? nameof(signatureCertificate)
@@ -56,6 +59,7 @@ public class AsiceArchive : IDisposable
 
         _signatureCertificate = signatureCertificate;
         _signatureFileRefCreator = signatureFileRefCreator;
+        _signatureCreator = signatureCreator;
 
         _logger = loggerFactory?.CreateLogger<AsiceArchive>() ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AsiceArchive>();
         _logger.LogDebug("Creating ASiC-e Zip");
@@ -65,6 +69,7 @@ public class AsiceArchive : IDisposable
         Stream zipOutStream,
         IManifestCreator creator,
         ISignatureFileRefCreator signatureFileRefCreator,
+        ISignatureCreator signatureCreator,
         ICertificateHolder signatureCertificateHolder,
         ILoggerFactory loggerFactory = null)
     {
@@ -85,7 +90,7 @@ public class AsiceArchive : IDisposable
 
         // The certificate holder and the signature file ref creator need to be
         // null at the same time and non-null at the same time:
-        if ((signatureCertificateHolder == null) != (signatureFileRefCreator== null))
+        if ((signatureCertificateHolder == null) != (signatureFileRefCreator == null))
         {
             var nullArgName = signatureCertificateHolder == null
                 ? nameof(signatureCertificateHolder)
@@ -98,6 +103,7 @@ public class AsiceArchive : IDisposable
 
         _signatureCertificate = signatureCertificateHolder;
         _signatureFileRefCreator = signatureFileRefCreator;
+        _signatureCreator = signatureCreator;
 
         _logger = loggerFactory?.CreateLogger<AsiceArchive>() ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AsiceArchive>();
         _logger.LogDebug("Creating ASiC-e Zip");

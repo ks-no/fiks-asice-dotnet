@@ -116,7 +116,11 @@ namespace KS.Fiks.ASiC_E.Test.Model
             using (var outputStream = new MemoryStream())
             {
                 using (var textFileStream = new MemoryStream(Encoding.UTF8.GetBytes(content)))
-                using (var asiceBuilder = AsiceBuilder.Create(outputStream, MessageDigestAlgorithm.SHA256, signingCertificates))
+                using (var asiceBuilder = AsiceBuilder.Create(
+                    outputStream,
+                    MessageDigestAlgorithm.SHA256,
+                    ManifestSpec.Cades,
+                    signingCertificates))
                 {
                     asiceBuilder.AddFile(textFileStream, contentFile, MimeType.ForString("text/plain"));
                     asiceBuilder.Build().ShouldNotBeNull();

@@ -50,16 +50,21 @@ public class AsiceArchiveTest
         byte[] zippedData;
         using (var zippedOutStream = new MemoryStream())
         {
-            // signatureFileRefCreator should be null if and only if certHolder is null:
+            // signatureFileRefCreator and signatureCreator should both be
+            // null if and only if certHolder is null:
             var signatureFileRefCreator = certHolder == null
                 ? null
                 : new CadesSignature();
+            var signatureCreator = certHolder == null
+                ? null
+                : SignatureCreator.Create(certHolder);
             var cadesManifestCreator = new CadesManifestCreator();
             using (var archive = new AsiceArchive(
-                       zippedOutStream,
-                       cadesManifestCreator,
-                       signatureFileRefCreator,
-                       certHolder))
+                zippedOutStream,
+                cadesManifestCreator,
+                signatureFileRefCreator,
+                signatureCreator,
+                certHolder))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
                 archive.AddEntry(
@@ -139,11 +144,14 @@ public class AsiceArchiveTest
             using var zippedOutStream = new MemoryStream();
             var cadesManifestCreator = new CadesManifestCreator();
             var signatureFileRefCreator = new CadesSignature();
+            var certHolder = TestdataLoader.ReadCertificatesForTest();
+            var signatureCreator = SignatureCreator.Create(certHolder);
             using (var archive = new AsiceArchive(
-                       zippedOutStream,
-                       cadesManifestCreator,
-                       signatureFileRefCreator,
-                       TestdataLoader.ReadCertificatesForTest()))
+                zippedOutStream,
+                cadesManifestCreator,
+                signatureFileRefCreator,
+                signatureCreator,
+                certHolder))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
                 archive.AddEntry(
