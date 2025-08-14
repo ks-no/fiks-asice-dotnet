@@ -25,39 +25,68 @@ public class AsiceArchiveTest
         _testOutputHelper = testOutputHelper;
     }
 
-    [Fact(DisplayName = "Create ASiC-E package with public and private keys for signing")]
-    public void CreateArchiveWithPublicAndPrivateKeysForSigning()
+    [Fact(DisplayName = "Create ASiC-E package in CAdES mode with public and private keys for signing")]
+    public void CreateArchiveWithPublicAndPrivateKeysForSigningWithCades()
     {
         var certHolder = TestdataLoader.ReadCertificatesForTest();
-        TestArchive(certHolder);
+        TestArchive(certHolder, ManifestSpec.Cades);
     }
 
-    [Fact(DisplayName = "Create ASiC-E package with X509Certificate2 for signing")]
-    public void CreateArchiveWithX509Certificate2ForSigning()
+    [Fact(DisplayName = "Create ASiC-E package CAdES mode with X509Certificate2 for signing")]
+    public void CreateArchiveWithX509Certificate2ForSigningWithCades()
     {
         var certHolder = TestdataLoader.ReadX509Certificate2ForTest();
-        TestArchive(certHolder);
+        TestArchive(certHolder, ManifestSpec.Cades);
     }
 
-    [Fact(DisplayName = "Create ASiC-E package with null ICertificateHolder")]
-    public void CreateArchiveWithoutCertificateHolder()
+    [Fact(DisplayName = "Create ASiC-E package CAdES mode with null ICertificateHolder in")]
+    public void CreateArchiveWithoutCertificateHolderWithCadesManifestSpec()
     {
-        TestArchive(null);
+        TestArchive(null, ManifestSpec.Cades);
     }
 
-    private void TestArchive(ICertificateHolder certHolder)
+    [Fact(DisplayName = "Create ASiC-E package XAdES mode with public and private keys for signing")]
+    public void CreateArchiveWithPublicAndPrivateKeysForSigningWithXades()
+    {
+        var certHolder = TestdataLoader.ReadCertificatesForTest();
+        TestArchive(certHolder, ManifestSpec.Xades);
+    }
+
+    [Fact(DisplayName = "Create ASiC-E package XAdES mode with X509Certificate2 for signing")]
+    public void CreateArchiveWithX509Certificate2ForSigningWithXades()
+    {
+        var certHolder = TestdataLoader.ReadX509Certificate2ForTest();
+        TestArchive(certHolder, ManifestSpec.Xades);
+    }
+
+    [Fact(DisplayName = "Create ASiC-E package XAdES mode with null ICertificateHolder")]
+    public void CreateArchiveWithoutCertificateHolderWithXadesManifestSpec()
+    {
+        TestArchive(null, ManifestSpec.Xades);
+    }
+
+    private void TestArchive(ICertificateHolder certHolder, ManifestSpec spec)
     {
         byte[] zippedData;
         using (var zippedOutStream = new MemoryStream())
         {
             // signatureFileRefCreator and signatureCreator should both be
             // null if and only if certHolder is null:
-            var signatureFileRefCreator = certHolder == null
+            ISignatureFileRefCreator signatureFileRefCreator = certHolder == null
                 ? null
-                : new CadesSignature();
-            var signatureCreator = certHolder == null
+                : (spec == ManifestSpec.Cades
+                    ? new CadesSignature()
+                    : new XadesSignature());
+
+            ISignatureCreator signatureCreator = certHolder == null
                 ? null
-                : SignatureCreator.Create(certHolder);
+                : (spec == ManifestSpec.Cades
+                    ? SignatureCreator.Create(certHolder)
+                    : XadesSignatureCreator.Create(certHolder));
+
+            // Perhaps not realistic to use a CAdES manifest with both CAdES
+            // and XAdES signatures, but in the absence of a distinct XAdES
+            // manifest format in the library, we use this for now:
             var cadesManifestCreator = new CadesManifestCreator();
             using (var archive = new AsiceArchive(
                 zippedOutStream,
@@ -110,9 +139,12 @@ public class AsiceArchiveTest
 
                 if (certHolder != null)
                 {
+                    var signatureSearchTerm = spec == ManifestSpec.Cades
+                        ? ".p7s"
+                        : "signatures.xml";
                     var signatureFile = zippedArchive.Entries
                         .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
-                                    e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
+                                    e.FullName.EndsWith(signatureSearchTerm, StringComparison.CurrentCulture));
                     signatureFile.ShouldNotBeNull();
 
                     // Verifies the signature file
