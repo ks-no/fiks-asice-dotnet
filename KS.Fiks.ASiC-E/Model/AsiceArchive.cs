@@ -167,7 +167,7 @@ public class AsiceArchive : IDisposable
         if (manifest.ManifestSpec == ManifestSpec.Cades && signatureFileRef != null)
         {
             manifest.SignatureFileRef = signatureFileRef;
-            var signatureFile = SignatureCreator.Create(_signatureCertificate).CreateCadesSignatureFile(manifest);
+            var signatureFile = SignatureCreator.Create(_signatureCertificate).CreateSignatureFile(manifest, _entries);
             using var signatureStream = new MemoryStream(signatureFile.Data.ToArray());
             var entry = _zipArchive.CreateEntry(signatureFile.SignatureFileRef.FileName);
             using var zipEntryStream = entry.Open();
