@@ -6,8 +6,8 @@ namespace KS.Fiks.ASiC_E.Sign
 {
     public interface ISignatureCreator
     {
-        SignatureFileContainer CreateSignatureFile(IEnumerable<AsicePackageEntry> asicPackageEntries);
-
-        SignatureFileContainer CreateCadesSignatureFile(ManifestContainer manifestContainer);
+        SignatureFileContainer CreateSignatureFile(
+            ManifestContainer manifestContainer,
+            IEnumerable<AsicePackageEntry> asicPackageEntries);
     }
 }

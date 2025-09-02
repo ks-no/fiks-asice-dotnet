@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Org.BouncyCastle.Asn1.Pkcs;
@@ -16,6 +18,8 @@ namespace KS.Fiks.ASiC_E.Crypto
     {
         AsymmetricKeyParameter GetPrivateKey();
 
+        IReadOnlyList<X509Certificate> GetCertificateChain();
+
         X509Certificate GetPublicCertificate();
     }
 
@@ -28,10 +32,16 @@ namespace KS.Fiks.ASiC_E.Crypto
 
         private AsymmetricKeyParameter PrivateKey { get; }
 
-        private PreloadedCertificateHolder(X509Certificate certificate, AsymmetricKeyParameter privateKey)
+        private IReadOnlyList<X509Certificate> CertificateChain { get; }
+
+        private PreloadedCertificateHolder(
+            X509Certificate certificate,
+            AsymmetricKeyParameter privateKey,
+            List<X509Certificate> certificateChain = null)
         {
             Certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
             PrivateKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+            CertificateChain = certificateChain ?? new List<X509Certificate>();
         }
 
         public static PreloadedCertificateHolder Create(byte[] pemPublicCertificate, byte[] pemPrivateKey)
@@ -39,9 +49,20 @@ namespace KS.Fiks.ASiC_E.Crypto
             return new PreloadedCertificateHolder(ExtractX509Certificate(pemPublicCertificate), ExtractPrivateKey(pemPrivateKey));
         }
 
-        public static PreloadedCertificateHolder Create(X509Certificate2 x509Certificate2)
+        public static PreloadedCertificateHolder Create(
+            X509Certificate2 x509Certificate2,
+            IEnumerable<X509Certificate2> certificateChain = null)
         {
-            return new PreloadedCertificateHolder(DotNetUtilities.FromX509Certificate(x509Certificate2), DotNetUtilities.GetKeyPair(x509Certificate2.PrivateKey).Private);
+            // Convert chain's System certificates to BouncyCastle certificates:
+            List<X509Certificate> convertedChain =
+                (certificateChain ?? Array.Empty<X509Certificate2>())
+                .Select(DotNetUtilities.FromX509Certificate)
+                .ToList();
+
+            return new PreloadedCertificateHolder(
+                DotNetUtilities.FromX509Certificate(x509Certificate2),
+                DotNetUtilities.GetKeyPair(x509Certificate2.PrivateKey).Private,
+                convertedChain);
         }
 
         public AsymmetricKeyParameter GetPrivateKey()
@@ -52,6 +73,11 @@ namespace KS.Fiks.ASiC_E.Crypto
         public X509Certificate GetPublicCertificate()
         {
             return Certificate;
+        }
+
+        public IReadOnlyList<X509Certificate> GetCertificateChain()
+        {
+            return CertificateChain;
         }
 
         private static X509Certificate ExtractX509Certificate(byte[] pemPublicCertificate)

@@ -3,12 +3,57 @@ using System.IO;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using KS.Fiks.ASiC_E.Sign;
 
 namespace KS.Fiks.ASiC_E;
 
 public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
 {
     private readonly AsiceArchive _asiceArchive;
+
+    private static IManifestCreator FindManifestCreator(
+        ManifestSpec spec,
+        Func<IManifestCreator> makeManifestCreator)
+    => makeManifestCreator != null
+        ? makeManifestCreator() ?? throw new InvalidOperationException(
+            "makeManifestCreator() returned null")
+        : spec switch
+        {
+            // TODO: A standard XAdES manifest has not been implemented
+            // yet, since the initial usecase for XAdES required a
+            // custom manifest format, for which the makeManifestCreator
+            // function parameter was introduced.
+            ManifestSpec.Cades => new CadesManifestCreator(),
+            _ => throw new ArgumentException(
+                "Only CAdES-style manifests are currently supported."),
+        };
+
+    private static ISignatureFileRefCreator FindSignatureFileRefCreator(
+        ManifestSpec spec,
+        ICertificateHolder certificateHolder)
+    => (certificateHolder == null)
+        ? null
+        : spec switch
+        {
+            ManifestSpec.Cades => new CadesSignature(),
+            ManifestSpec.Xades => new XadesSignature(),
+            _ => throw new ArgumentException(
+                "Only CAdES-style manifests are currently supported."),
+        };
+
+    private static ISignatureCreator FindSignatureCreator(
+      ManifestSpec spec,
+      ICertificateHolder certificateHolder,
+      Func<DateTime> getUtcNow)
+    => (certificateHolder == null)
+        ? null
+        : spec switch
+        {
+            ManifestSpec.Cades => SignatureCreator.Create(certificateHolder),
+            ManifestSpec.Xades => XadesSignatureCreator.Create(certificateHolder, getUtcNow),
+            _ => throw new ArgumentException(
+                "Only CAdES-style manifests are currently supported."),
+        };
 
     private AsiceBuilder(AsiceArchive asiceArchive)
     {
@@ -23,10 +68,40 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
     /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
     /// <returns>A builder that may be used to construct a ASiC-E package</returns>
     /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
+    [Obsolete("This overload is kept for backwards compatibility. Move over to the new Create() that exposes a ManifestSpec parameter.")]
     public static AsiceBuilder Create(
         Stream stream,
         MessageDigestAlgorithm messageDigestAlgorithm,
         ICertificateHolder signCertificate)
+    {
+        return Create(
+            stream,
+            messageDigestAlgorithm,
+            ManifestSpec.Cades,
+            signCertificate);
+    }
+
+    /// <summary>
+    /// Create builder
+    /// </summary>
+    /// <param name="stream">The stream where the ASiC-E data will be written. Can not be null and must be writable</param>
+    /// <param name="messageDigestAlgorithm">The digest algorithm to use. Not nullable</param>
+    /// <param name="manifestSpec">An enum saying the type of signature to add</param>
+    /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
+    /// <param name="makeManifestCreator">Function that returns an object that can create custom
+    /// manifests; default null to get standard behaviour</param>
+    /// <param name="getUtcNow">Function that returns a DateTime object for the current
+    /// time; used for registering the time of signing in the signature in XAdES. If null,
+    /// DateTime.UtcNow will be used.</param>
+    /// <returns>A builder that may be used to construct a ASiC-E package</returns>
+    /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
+    public static AsiceBuilder Create(
+        Stream stream,
+        MessageDigestAlgorithm messageDigestAlgorithm,
+        ManifestSpec manifestSpec,
+        ICertificateHolder signCertificate,
+        Func<IManifestCreator> makeManifestCreator = null,
+        Func<DateTime> getUtcNow = null)
     {
         var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
         var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
@@ -35,10 +110,15 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
             throw new ArgumentException("The provided Stream must be writable", nameof(stream));
         }
 
-        var cadesManifestCreator = signCertificate == null
-            ? CadesManifestCreator.CreateWithoutSignatureFile()
-            : CadesManifestCreator.CreateWithSignatureFile();
-        return new AsiceBuilder(new AsiceArchive(outStream, cadesManifestCreator, signCertificate));
+        var sigCreator = FindSignatureCreator(manifestSpec, signCertificate, getUtcNow);
+        var sigFileRefCreator = FindSignatureFileRefCreator(manifestSpec, signCertificate);
+        var manifestCreator = FindManifestCreator(manifestSpec, makeManifestCreator);
+
+        return new AsiceBuilder(new AsiceArchive(
+            outStream,
+            manifestCreator,
+            sigFileRefCreator,
+            sigCreator));
     }
 
     public AsiceArchive Build()

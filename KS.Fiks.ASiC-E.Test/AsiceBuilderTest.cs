@@ -17,7 +17,11 @@ public class AsiceBuilderTest
         var zipStream = new Mock<Stream>();
         var certificate = new Mock<ICertificateHolder>();
         Action createFunction = () =>
-            AsiceBuilder.Create(zipStream.Object, MessageDigestAlgorithm.SHA512, certificate.Object);
+            AsiceBuilder.Create(
+                zipStream.Object,
+                MessageDigestAlgorithm.SHA512,
+                ManifestSpec.Cades,
+                certificate.Object);
         createFunction.ShouldThrow<ArgumentException>();
         zipStream.VerifyGet(s => s.CanWrite);
         zipStream.VerifyNoOtherCalls();
@@ -32,8 +36,11 @@ public class AsiceBuilderTest
         using (var zipStream = new MemoryStream())
         using (var fileStream = File.OpenRead("small.pdf"))
         {
-            using (var asiceBuilder =
-                   AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
+            using (var asiceBuilder = AsiceBuilder.Create(
+                zipStream,
+                MessageDigestAlgorithm.SHA256,
+                ManifestSpec.Cades,
+                signingCertificates))
             {
                 asiceBuilder.ShouldNotBeNull();
 
@@ -67,8 +74,11 @@ public class AsiceBuilderTest
         using (var zipStream = new MemoryStream())
         using (var fileStream = File.OpenRead("small.pdf"))
         {
-            using (var asiceBuilder =
-                AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, signingCertificates))
+            using (var asiceBuilder = AsiceBuilder.Create(
+                zipStream,
+                MessageDigestAlgorithm.SHA256,
+                ManifestSpec.Cades,
+                signingCertificates))
             {
                 asiceBuilder.ShouldNotBeNull();
 
