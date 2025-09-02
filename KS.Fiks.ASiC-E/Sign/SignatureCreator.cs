@@ -22,12 +22,9 @@ namespace KS.Fiks.ASiC_E.Sign
             return new SignatureCreator(certificateHolder);
         }
 
-        public SignatureFileContainer CreateSignatureFile(IEnumerable<AsicePackageEntry> asicPackageEntries)
-        {
-            throw new NotImplementedException();
-        }
-
-        public SignatureFileContainer CreateCadesSignatureFile(ManifestContainer manifestContainer)
+        public SignatureFileContainer CreateSignatureFile(
+            ManifestContainer manifestContainer,
+            IEnumerable<AsicePackageEntry> asicPackageEntries)
         {
             var signedDataGenerator = new CmsSignedDataGenerator();
             signedDataGenerator.AddSigner(

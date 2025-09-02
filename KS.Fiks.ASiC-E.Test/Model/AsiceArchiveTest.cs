@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Text;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using KS.Fiks.ASiC_E.Sign;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -24,29 +26,77 @@ public class AsiceArchiveTest
         _testOutputHelper = testOutputHelper;
     }
 
-    [Fact(DisplayName = "Create ASiC-E package with public and private keys for signing")]
-    public void CreateArchiveWithPublicAndPrivateKeysForSigning()
+    [Fact(DisplayName = "Create ASiC-E package in CAdES mode with public and private keys for signing")]
+    public void CreateArchiveWithPublicAndPrivateKeysForSigningWithCades()
     {
         var certHolder = TestdataLoader.ReadCertificatesForTest();
-        TestArchive(certHolder);
+        TestArchive(certHolder, ManifestSpec.Cades);
     }
 
-    [Fact(DisplayName = "Create ASiC-E package with X509Certificate2 for signing")]
-    public void CreateArchiveWithX509Certificate2ForSigning()
+    [Fact(DisplayName = "Create ASiC-E package CAdES mode with X509Certificate2 for signing")]
+    public void CreateArchiveWithX509Certificate2ForSigningWithCades()
     {
         var certHolder = TestdataLoader.ReadX509Certificate2ForTest();
-        TestArchive(certHolder);
+        TestArchive(certHolder, ManifestSpec.Cades);
     }
 
-    private void TestArchive(ICertificateHolder certHolder)
+    [Fact(DisplayName = "Create ASiC-E package CAdES mode with null ICertificateHolder in")]
+    public void CreateArchiveWithoutCertificateHolderWithCadesManifestSpec()
     {
+        TestArchive(null, ManifestSpec.Cades);
+    }
+
+    [Fact(DisplayName = "Create ASiC-E package XAdES mode with public and private keys for signing")]
+    public void CreateArchiveWithPublicAndPrivateKeysForSigningWithXades()
+    {
+        var certHolder = TestdataLoader.ReadCertificatesForTest();
+        TestArchive(certHolder, ManifestSpec.Xades);
+    }
+
+    [Fact(DisplayName = "Create ASiC-E package XAdES mode with X509Certificate2 for signing")]
+    public void CreateArchiveWithX509Certificate2ForSigningWithXades()
+    {
+        var certHolder = TestdataLoader.ReadX509Certificate2ForTest();
+        TestArchive(certHolder, ManifestSpec.Xades);
+    }
+
+    [Fact(DisplayName = "Create ASiC-E package XAdES mode with null ICertificateHolder")]
+    public void CreateArchiveWithoutCertificateHolderWithXadesManifestSpec()
+    {
+        TestArchive(null, ManifestSpec.Xades);
+    }
+
+    private void TestArchive(ICertificateHolder certHolder, ManifestSpec spec)
+    {
+        var signingTimeStamp = DateTime.Parse(
+            "2025-07-27T15:53:18",
+            CultureInfo.InvariantCulture);
         byte[] zippedData;
         using (var zippedOutStream = new MemoryStream())
         {
+            // signatureFileRefCreator and signatureCreator should both be
+            // null if and only if certHolder is null:
+            ISignatureFileRefCreator signatureFileRefCreator = certHolder == null
+                ? null
+                : (spec == ManifestSpec.Cades
+                    ? new CadesSignature()
+                    : new XadesSignature());
+
+            ISignatureCreator signatureCreator = certHolder == null
+                ? null
+                : (spec == ManifestSpec.Cades
+                    ? SignatureCreator.Create(certHolder)
+                    : XadesSignatureCreator.Create(certHolder, () => signingTimeStamp));
+
+            // Perhaps not realistic to use a CAdES manifest with both CAdES
+            // and XAdES signatures, but in the absence of a distinct XAdES
+            // manifest format in the library, we use this for now:
+            var cadesManifestCreator = new CadesManifestCreator();
             using (var archive = new AsiceArchive(
-                       zippedOutStream,
-                       CadesManifestCreator.CreateWithSignatureFile(),
-                       certHolder))
+                zippedOutStream,
+                cadesManifestCreator,
+                signatureFileRefCreator,
+                signatureCreator))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
                 archive.AddEntry(
@@ -61,7 +111,7 @@ public class AsiceArchiveTest
             using (var zipInput = new MemoryStream(zippedData))
             using (var zippedArchive = new ZipArchive(zipInput, ZipArchiveMode.Read))
             {
-                zippedArchive.Entries.Count.ShouldBe(4);
+                zippedArchive.Entries.Count.ShouldBe(certHolder == null ? 3 : 4);
                 zippedArchive.Entries.First(e => e.FullName.Equals(FileNameTestPdf, StringComparison.CurrentCulture))
                     .ShouldNotBeNull();
                 zippedArchive.Entries
@@ -91,18 +141,24 @@ public class AsiceArchiveTest
                     _testOutputHelper.WriteLine($"Manifest: {manifestXml}");
                 }
 
-                var signatureFile = zippedArchive.Entries
-                    .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
-                                e.FullName.EndsWith(".p7s", StringComparison.CurrentCulture));
-                signatureFile.ShouldNotBeNull();
-
-                // Verifies the signature file
-                using (var entryStream = signatureFile.Open())
-                using (var copyStream = new MemoryStream())
+                if (certHolder != null)
                 {
-                    entryStream.CopyTo(copyStream);
-                    var signatureContent = copyStream.ToArray();
-                    signatureContent.Length.ShouldBeGreaterThan(0);
+                    var signatureSearchTerm = spec == ManifestSpec.Cades
+                        ? ".p7s"
+                        : "signatures.xml";
+                    var signatureFile = zippedArchive.Entries
+                        .First(e => e.FullName.StartsWith("META-INF", StringComparison.CurrentCulture) &&
+                                    e.FullName.EndsWith(signatureSearchTerm, StringComparison.CurrentCulture));
+                    signatureFile.ShouldNotBeNull();
+
+                    // Verifies the signature file
+                    using (var entryStream = signatureFile.Open())
+                    using (var copyStream = new MemoryStream())
+                    {
+                        entryStream.CopyTo(copyStream);
+                        var signatureContent = copyStream.ToArray();
+                        signatureContent.Length.ShouldBeGreaterThan(0);
+                    }
                 }
             }
 
@@ -121,10 +177,15 @@ public class AsiceArchiveTest
         public void CreateArchiveWithReuseOfZippedOutStream()
         {
             using var zippedOutStream = new MemoryStream();
+            var cadesManifestCreator = new CadesManifestCreator();
+            var signatureFileRefCreator = new CadesSignature();
+            var certHolder = TestdataLoader.ReadCertificatesForTest();
+            var signatureCreator = SignatureCreator.Create(certHolder);
             using (var archive = new AsiceArchive(
-                       zippedOutStream,
-                       CadesManifestCreator.CreateWithSignatureFile(),
-                       TestdataLoader.ReadCertificatesForTest()))
+                zippedOutStream,
+                cadesManifestCreator,
+                signatureFileRefCreator,
+                signatureCreator))
             using (var fileStream = File.OpenRead(FileNameTestPdf))
             {
                 archive.AddEntry(

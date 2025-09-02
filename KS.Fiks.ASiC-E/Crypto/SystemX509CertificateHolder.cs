@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
@@ -19,6 +20,15 @@ namespace KS.Fiks.ASiC_E.Crypto
         public X509Certificate GetPublicCertificate()
         {
             return Cert;
+        }
+
+        public IReadOnlyList<X509Certificate> GetCertificateChain()
+        {
+            // TODO: Add support for certificate chains in this implementation
+            // of ICertificateHolder as well, assuming this implementation is
+            // actually used (it doesn't seem to be, but is public, so maybe
+            // some client uses it).
+            return Array.Empty<X509Certificate>();
         }
 
         private X509Certificate Cert { get; }

@@ -12,12 +12,14 @@ to be functionally compliant with the [DIFI ASiC library for Java](//github.com/
 
 Currently implements:
 * building ASiC-E packages containing binaries containing CAdES descriptor
+* building ASiC-E packages containing XAdES signatures
+* building ASiC-E packages with custom manifests
 * signing packages using private/public keys in PEM files
 * reading ASiC-E packages including exposing CAdES signatures (only CAdES manifest descriptor supported for now)
 
 TODO:
 * support for specifying OASIS manifest 
-* support XAdES signatures
+* support veryfying XAdES signatures
 
 ## Examples
 ### Create ASiC-E package containing single file

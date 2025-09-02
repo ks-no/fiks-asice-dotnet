@@ -6,7 +6,6 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 using KS.Fiks.ASiC_E.Model;
-using KS.Fiks.ASiC_E.Sign;
 using KS.Fiks.ASiC_E.Xsd;
 
 namespace KS.Fiks.ASiC_E.Manifest
@@ -15,30 +14,14 @@ namespace KS.Fiks.ASiC_E.Manifest
     {
         private static readonly Encoding Encoding = Encoding.UTF8;
 
-        private readonly bool addSignatureFile;
-
-        private CadesManifestCreator(bool addSignatureFile)
-        {
-            this.addSignatureFile = addSignatureFile;
-        }
-
-        public static CadesManifestCreator CreateWithSignatureFile()
-        {
-            return new CadesManifestCreator(true);
-        }
-
-        public static CadesManifestCreator CreateWithoutSignatureFile()
-        {
-            return new CadesManifestCreator(false);
-        }
-
-        public ManifestContainer CreateManifest(IEnumerable<AsicePackageEntry> entries)
+        public ManifestContainer CreateManifest(
+            IEnumerable<AsicePackageEntry> entries,
+            SignatureFileRef signatureFileRef)
         {
             var manifest = new ASiCManifestType { DataObjectReference = entries.Select(ToDataObject).ToArray() };
-            SignatureFileRef signatureFileRef = null;
-            if (addSignatureFile)
+
+            if (signatureFileRef is not null)
             {
-                signatureFileRef = CadesSignature.CreateSignatureRef();
                 manifest.SigReference = new SigReferenceType
                 {
                     MimeType = signatureFileRef.MimeType.ToString(), URI = signatureFileRef.FileName

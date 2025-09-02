@@ -3,6 +3,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
+using KS.Fiks.ASiC_E.Sign;
 using KS.Fiks.ASiC_E.Xsd;
 using Shouldly;
 using Xunit;
@@ -14,12 +15,14 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
         [Fact(DisplayName = "Create CAdES manifest without signature")]
         public void CreateCadesManifest()
         {
-            var cadesManifestCreator = CadesManifestCreator.CreateWithoutSignatureFile();
+            var cadesManifestCreator = new CadesManifestCreator();
             var digestAlgorithm = MessageDigestAlgorithm.SHA256;
             var fileEntry = new AsicePackageEntry("my.pdf", MimeType.ForString("application/pdf"), digestAlgorithm);
             fileEntry.Digest = new DigestContainer(new byte[] { 0, 0, 1 }, digestAlgorithm);
             var entries = new[] { fileEntry };
-            var manifest = cadesManifestCreator.CreateManifest(entries);
+            var manifest = cadesManifestCreator.CreateManifest(
+                entries,
+                null); // null SignatureFileRef because no signature in this test
             manifest.ShouldNotBeNull()
                 .ShouldBeOfType<ManifestContainer>();
             manifest.Data.ShouldNotBeNull();
@@ -39,10 +42,12 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
         [Fact(DisplayName = "Create CAdES manifest with signature")]
         public void CreateCadesManifestIncludingSignature()
         {
-            var cadesManifestCreator = CadesManifestCreator.CreateWithSignatureFile();
+            var cadesManifestCreator = new CadesManifestCreator();
             var fileEntry = new AsicePackageEntry("my.pdf", MimeType.ForString("application/pdf"), MessageDigestAlgorithm.SHA256);
             fileEntry.Digest = new DigestContainer(new byte[] { 0, 0, 1 }, MessageDigestAlgorithm.SHA256);
-            var manifest = cadesManifestCreator.CreateManifest(new[] { fileEntry });
+            var manifest = cadesManifestCreator.CreateManifest(
+                new[] { fileEntry },
+                new CadesSignature().CreateSignatureRef());
             manifest.ShouldNotBeNull().ShouldBeOfType<ManifestContainer>();
             manifest.FileName.ShouldBe(AsiceConstants.CadesManifestFilename);
             var xmlManifest = DeserializeManifest(manifest.Data.ToArray());
