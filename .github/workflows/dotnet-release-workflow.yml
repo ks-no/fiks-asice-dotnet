@@ -254,15 +254,11 @@ jobs:
           if-no-files-found: error
 
       - name: Push to Artifactory
-        env:
-          NUGET_PUSH_REPO: https://artifactory.fiks.ks.no/artifactory/api/nuget/nuget-all
         run: |
           for pkg in $(find . -name "*.nupkg" -path "*/Release/*"); do
             echo "Pushing $pkg to Artifactory"
             dotnet nuget push "$pkg" \
-              -s $NUGET_PUSH_REPO \
-              -u ${{ secrets.ARTIFACTORY_USERNAME }} \
-              -p ${{ secrets.ARTIFACTORY_PASSWORD }} \
+              -s nuget-all \
               --skip-duplicate
           done
 
