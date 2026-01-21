@@ -260,8 +260,9 @@ jobs:
           for pkg in $(find . -name "*.nupkg" -path "*/Release/*"); do
             echo "Pushing $pkg to Artifactory"
             dotnet nuget push "$pkg" \
-              -k ${{ secrets.ARTIFACTORY_PASSWORD }} \
               -s $NUGET_PUSH_REPO \
+              -u ${{ secrets.ARTIFACTORY_USERNAME }} \
+              -p ${{ secrets.ARTIFACTORY_PASSWORD }} \
               --skip-duplicate
           done
 
