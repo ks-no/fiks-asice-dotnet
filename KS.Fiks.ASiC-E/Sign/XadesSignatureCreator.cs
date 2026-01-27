@@ -213,6 +213,27 @@ namespace KS.Fiks.ASiC_E.Sign
         private static string MakeFragmentID(string id)
             => "#" + id;
 
+
+        // The names of payloads in the signature file are given in attributes
+        // of URI type, and therefore they need to be URI-escaped. Additionally,
+        // they need to have any combining characters normalized to NFC (FormC)
+        // where a compound letter such as a base letter "e" with an accute accent
+        // "´" is written in its canonical composed form rather than in its
+        // decomposed form with the "e" and the combining mark written separately.
+        private static string NormalizePathToNfcAndUriEscape(string path)
+        {
+            var nfcPath = path.Normalize(NormalizationForm.FormC);
+
+            var segs = nfcPath.Split('/');
+
+            for (int i = 0; i < segs.Length; i++)
+            {
+                segs[i] = Uri.EscapeDataString(segs[i]);
+            }
+
+            return string.Join("/", segs);
+        }
+
         private static XDocument CreateXadesDocument(
             AsymmetricKeyParameter privateKey,
             IEnumerable<string> publicKeys,
@@ -280,7 +301,7 @@ namespace KS.Fiks.ASiC_E.Sign
                     new XAttribute(AttrAlgorithm, AlgoXmlDsigMoreRsaSha256)),
                 entries.Select(pkgEntry => new XElement(Nsmap[Dsig] + TagReference,
                     new XAttribute(AttrId, pkgEntry.ID),
-                    new XAttribute(AttrURI, pkgEntry.FileName),
+                    new XAttribute(AttrURI, NormalizePathToNfcAndUriEscape(pkgEntry.FileName)),
                     new XElement(Nsmap[Dsig] + TagDigestMethod,
                         new XAttribute(AttrAlgorithm, AlgoXmlEncSha256)),
                     new XElement(Nsmap[Dsig] + TagDigestValue,
