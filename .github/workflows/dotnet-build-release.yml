@@ -132,7 +132,7 @@ jobs:
       - name: Trigger Test Suite
         uses: actions/github-script@v8
         with:
-          github-token: ${{ steps.setup-github-app.outputs.github_token }}
+          github-token: ${{ steps.setup-github-app.outputs.app_token }}
           script: |
             console.log('Triggering test suite in asice-testsuite repository...');
             await github.rest.actions.createWorkflowDispatch({
