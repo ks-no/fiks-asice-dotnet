@@ -177,6 +177,29 @@ jobs:
           api-key: ${{ secrets.NUGET_API_KEY }}
           package-path: packages
 
+      - id: setup-github-app
+        uses: ks-no/github-actions-public/setup-github-app@main
+        with:
+          ks_github_app_id: ${{ vars.KS_RUNNER_APP_ID }}
+          ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
+
+      - name: Trigger Test Suite
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ steps.setup-github-app.outputs.github_token }}
+          script: |
+            console.log('Triggering test suite in asice-testsuite repository...');
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'ks-no',
+              repo: 'asice-testsuite',
+              workflow_id: 'testsuite.yml',
+              ref: 'main',
+              inputs: {
+                componentVersion: ''
+              }
+            });
+            console.log('Test suite triggered successfully');
+
   release:
     name: Release
     needs: [initialize, build-linux, build-windows, push-nuget-org]
