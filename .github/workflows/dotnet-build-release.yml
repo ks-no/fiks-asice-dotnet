@@ -1,0 +1,229 @@
+name: .NET Library Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      isRelease:
+        description: 'Release build?'
+        type: boolean
+        required: false
+        default: false
+      pushToNugetOrg:
+        description: 'Push to nuget.org? (for pre-release)'
+        type: boolean
+        required: false
+        default: false
+      specifiedVersion:
+        description: 'Version (X.X.X) - leave empty for auto'
+        required: false
+        default: ''
+      releaseNotes:
+        description: 'Release notes'
+        required: false
+        default: 'No changes specified'
+      reviewer:
+        description: 'Reviewer name'
+        required: false
+        default: 'No review required'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+
+jobs:
+  initialize:
+    name: Initialize
+    runs-on: ubuntu-latest
+    outputs:
+      current-version: ${{ steps.version.outputs.current-version }}
+      next-version: ${{ steps.version.outputs.next-version }}
+      full-version: ${{ steps.version.outputs.full-version }}
+      build-opts: ${{ steps.version.outputs.build-opts }}
+    
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - id: version
+        uses: ks-no/github-actions-public/dotnet-calculate-version@main
+        with:
+          specified-version: ${{ github.event.inputs.specifiedVersion }}
+          is-release: ${{ github.event.inputs.isRelease }}
+          branch-name: ${{ github.ref_name }}
+          run-number: ${{ github.run_number }}
+
+  build-linux:
+    name: Build (Linux)
+    needs: initialize
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: true
+
+      - name: Build and Test
+        uses: ks-no/github-actions-public/dotnet-build-and-test@main
+        with:
+          build-opts: ${{ needs.initialize.outputs.build-opts }}
+          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+
+      - name: Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Tests (Linux)
+          path: '**/*.trx'
+          reporter: dotnet-trx
+          fail-on-error: false
+
+      - name: Generate SBOM
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: ks-no/github-actions-public/dotnet-generate-sbom@main
+        with:
+          version: ${{ needs.initialize.outputs.full-version }}
+
+      - name: Upload SBOM
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: bom.json
+          if-no-files-found: ignore
+
+      - name: Sign Packages
+        uses: ks-no/github-actions-public/dotnet-sign-nuget-packages@main
+        with:
+          certificate-base64: ${{ secrets.CODE_SIGN_CERT_BASE64 }}
+          certificate-password: ${{ secrets.CODE_SIGN_PFX_PASS }}
+
+      - name: Upload Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: |
+            **/Release/*.nupkg
+            **/Release/*.snupkg
+          if-no-files-found: error
+
+      - name: Push to Artifactory
+        uses: ks-no/github-actions-public/dotnet-push-to-artifactory@main
+        with:
+          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+
+      - id: setup-github-app
+        uses: ks-no/github-actions-public/setup-github-app@main
+        with:
+          ks_github_app_id: ${{ vars.KS_RUNNER_APP_ID }}
+          ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
+
+      - name: Trigger Test Suite
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ steps.setup-github-app.outputs.app_token }}
+          script: |
+            console.log('Triggering test suite in asice-testsuite repository...');
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'ks-no',
+              repo: 'asice-testsuite',
+              workflow_id: 'testsuite.yml',
+              ref: 'master',
+              inputs: {
+                componentVersion: ''
+              }
+            });
+            console.log('Test suite triggered successfully');
+
+  build-windows:
+    name: Build (Windows)
+    needs: initialize
+    runs-on: windows-latest
+    timeout-minutes: 60
+    
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: true
+
+      - name: Build and Test
+        uses: ks-no/github-actions-public/dotnet-build-and-test@main
+        with:
+          build-opts: ${{ needs.initialize.outputs.build-opts }}
+          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          restore-args: '--disable-parallel --verbosity detailed'
+          test-verbosity: 'detailed'
+
+      - name: Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Tests (Windows)
+          path: '**/*.trx'
+          reporter: dotnet-trx
+          fail-on-error: false
+
+  push-nuget-org:
+    name: Push to NuGet.org
+    needs: [initialize, build-linux, build-windows]
+    if: |
+      (github.event.inputs.isRelease == 'true' || github.event.inputs.pushToNugetOrg == 'true') && 
+      !startsWith(github.ref, 'refs/heads/dependabot/')
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: packages
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: ks-no/github-actions-public/dotnet-push-to-nuget-org@main
+        with:
+          api-key: ${{ secrets.NUGET_API_KEY }}
+          package-path: packages
+
+  release:
+    name: Release
+    needs: [initialize, build-linux, build-windows, push-nuget-org]
+    if: github.event.inputs.isRelease == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: release-packages
+
+      - uses: ks-no/github-actions-public/create-github-release@main
+        with:
+          current-version: ${{ needs.initialize.outputs.current-version }}
+          next-version: ${{ needs.initialize.outputs.next-version }}
+          release-notes: ${{ github.event.inputs.releaseNotes }}
+          reviewer: ${{ github.event.inputs.reviewer }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          actor: ${{ github.actor }}
+          ref-name: ${{ github.ref_name }}
