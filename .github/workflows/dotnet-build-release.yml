@@ -178,6 +178,31 @@ jobs:
             });
             console.log(`Test suite triggered (check run #${checkRun.id})`);
 
+            // Only block the build on integration test results for release builds
+            const isRelease = '${{ github.event.inputs.isRelease }}' === 'true';
+            if (!isRelease) return;
+
+            const pollIntervalMs = 30_000;
+            const maxAttempts = 100;
+            let attempts = 0;
+            let conclusion = null;
+            while (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+              const { data: updated } = await github.rest.checks.get({
+                owner: clientOwner,
+                repo:  clientRepo,
+                check_run_id: checkRun.id
+              });
+              console.log(`[${++attempts}] status: ${updated.status}, conclusion: ${updated.conclusion}`);
+              if (updated.status === 'completed') {
+                conclusion = updated.conclusion;
+                break;
+              }
+            }
+            if (conclusion !== 'success') {
+              core.setFailed(`Integration tests did not pass (conclusion: ${conclusion})`);
+            }
+
   build-windows:
     name: Build (Windows)
     needs: initialize
@@ -212,6 +237,7 @@ jobs:
   push-nuget-org:
     name: Push to NuGet.org
     needs: [initialize, build-linux, build-windows]
+
     if: |
       (github.event.inputs.isRelease == 'true' || github.event.inputs.pushToNugetOrg == 'true') && 
       !startsWith(github.ref, 'refs/heads/dependabot/')
