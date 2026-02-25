@@ -30,9 +30,9 @@ on:
         required: false
         default: 'No review required'
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
+      - '**'
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -138,17 +138,45 @@ jobs:
         with:
           github-token: ${{ steps.setup-github-app.outputs.app_token }}
           script: |
-            console.log('Triggering test suite in asice-testsuite repository...');
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'ks-no',
-              repo: 'asice-testsuite',
-              workflow_id: 'testsuite.yml',
-              ref: 'master',
-              inputs: {
-                componentVersion: ''
+            const intOwner = 'ks-no';
+            const intRepo = 'asice-testsuite';
+            const workflowId = 'testsuite.yml';
+            const componentVersion = '${{ needs.initialize.outputs.full-version }}';
+            const clientOwner = context.repo.owner;
+            const clientRepo  = context.repo.repo;
+            const clientSha   = context.sha;
+
+            // Create a pending check run on the triggering commit
+            const { data: checkRun } = await github.rest.checks.create({
+              owner: clientOwner,
+              repo:  clientRepo,
+              name:  'Integration Tests',
+              head_sha:   clientSha,
+              status:     'in_progress',
+              started_at: new Date().toISOString(),
+              output: {
+                title:   'Integration Tests',
+                summary: `Running integration tests with version ${componentVersion}`
               }
             });
-            console.log('Test suite triggered successfully');
+            console.log(`Created check run #${checkRun.id}`);
+
+            // Dispatch — pass check run metadata so the testsuite workflow can update it
+            await github.rest.actions.createWorkflowDispatch({
+              owner: intOwner,
+              repo:  intRepo,
+              workflow_id: workflowId,
+              ref: 'master',
+              inputs: {
+                componentVersion,
+                componentPackageName: 'KS.Fiks.ASiC-E',
+                clientOwner,
+                clientRepo,
+                clientSha,
+                checkRunId: String(checkRun.id)
+              }
+            });
+            console.log(`Test suite triggered (check run #${checkRun.id})`);
 
   build-windows:
     name: Build (Windows)
