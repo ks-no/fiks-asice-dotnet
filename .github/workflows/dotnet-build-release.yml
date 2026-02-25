@@ -256,6 +256,6 @@ jobs:
           next-version: ${{ needs.initialize.outputs.next-version }}
           release-notes: ${{ github.event.inputs.releaseNotes }}
           reviewer: ${{ github.event.inputs.reviewer }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.setup-github-app.outputs.app_token }}
           actor: ${{ github.actor }}
           ref-name: ${{ github.ref_name }}
