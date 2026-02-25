@@ -134,6 +134,7 @@ jobs:
           ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
 
       - name: Trigger Test Suite
+        id: trigger
         uses: actions/github-script@v8
         with:
           github-token: ${{ steps.setup-github-app.outputs.app_token }}
@@ -146,7 +147,6 @@ jobs:
             const clientRepo  = context.repo.repo;
             const clientSha   = context.sha;
 
-            // Create a pending check run on the triggering commit
             const { data: checkRun } = await github.rest.checks.create({
               owner: clientOwner,
               repo:  clientRepo,
@@ -159,9 +159,6 @@ jobs:
                 summary: `Running integration tests with version ${componentVersion}`
               }
             });
-            console.log(`Created check run #${checkRun.id}`);
-
-            // Dispatch — pass check run metadata so the testsuite workflow can update it
             await github.rest.actions.createWorkflowDispatch({
               owner: intOwner,
               repo:  intRepo,
@@ -177,6 +174,37 @@ jobs:
               }
             });
             console.log(`Test suite triggered (check run #${checkRun.id})`);
+            core.setOutput('check-run-id', String(checkRun.id));
+
+      - name: Wait for Test Suite
+        if: github.event.inputs.isRelease == 'true'
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ steps.setup-github-app.outputs.app_token }}
+          script: |
+            const clientOwner = context.repo.owner;
+            const clientRepo  = context.repo.repo;
+            const checkRunId  = Number('${{ steps.trigger.outputs.check-run-id }}');
+            const pollIntervalMs = 30_000;
+            const maxAttempts = 100;
+            let attempts = 0;
+            let conclusion = null;
+            while (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+              const { data: updated } = await github.rest.checks.get({
+                owner: clientOwner,
+                repo:  clientRepo,
+                check_run_id: checkRunId
+              });
+              console.log(`[${++attempts}] status: ${updated.status}, conclusion: ${updated.conclusion}`);
+              if (updated.status === 'completed') {
+                conclusion = updated.conclusion;
+                break;
+              }
+            }
+            if (conclusion !== 'success') {
+              core.setFailed(`Integration tests did not pass (conclusion: ${conclusion})`);
+            }
 
             // Only block the build on integration test results for release builds
             const isRelease = '${{ github.event.inputs.isRelease }}' === 'true';
@@ -275,6 +303,12 @@ jobs:
         with:
           name: nuget-packages
           path: release-packages
+
+      - id: setup-github-app
+        uses: ks-no/github-actions-public/setup-github-app@main
+        with:
+          ks_github_app_id: ${{ vars.KS_RUNNER_APP_ID }}
+          ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
 
       - uses: ks-no/github-actions-public/create-github-release@main
         with:
