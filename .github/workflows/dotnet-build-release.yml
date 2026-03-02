@@ -1,5 +1,5 @@
 permissions:
-  contents: read
+  contents: write
   checks: write
   
 name: .NET Library Build and Release
