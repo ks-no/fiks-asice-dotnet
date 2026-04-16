@@ -105,10 +105,3 @@ using (var asice = reader.Read(inputStream))
     }
 }
 ```
-
-## Integration testing
-
-This library is integration-tested against the Java implementation via
-[ks-no/asice-testsuite](https://github.com/ks-no/asice-testsuite), which verifies
-cross-platform compatibility between the .NET and Java ASiC-E implementations.
-The integration test suite is triggered automatically as part of release builds.
