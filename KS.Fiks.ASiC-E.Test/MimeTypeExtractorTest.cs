@@ -13,7 +13,7 @@ namespace KS.Fiks.ASiC_E.Test
         [InlineData("filename.doc", "application/msword")]
         [InlineData("filename.xls", "application/vnd.ms-excel")]
         [InlineData("filename.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
-        [InlineData("filename.xml", "application/xml")]
+        [InlineData("filename.xml", "text/xml")]
         public void TestExtractMimeType(string fileName, string mimeType)
         {
             var type = MimeTypeExtractor.ExtractMimeType(fileName);
