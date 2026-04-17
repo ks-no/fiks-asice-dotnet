@@ -93,13 +93,13 @@ jobs:
           fail-on-error: false
 
       - name: Generate SBOM
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         uses: ks-no/github-actions-public/dotnet-generate-sbom@main
         with:
           version: ${{ needs.initialize.outputs.full-version }}
 
       - name: Upload SBOM
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: sbom
@@ -163,7 +163,7 @@ jobs:
               owner: intOwner,
               repo:  intRepo,
               workflow_id: workflowId,
-              ref: 'master',
+              ref: 'main',
               inputs: {
                 componentVersion,
                 componentPackageName: 'KS.Fiks.ASiC-E',
@@ -264,7 +264,7 @@ jobs:
   release:
     name: Release
     needs: [initialize, build-linux, build-windows, push-nuget-org]
-    if: github.event.inputs.isRelease == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event.inputs.isRelease == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     
     steps:
