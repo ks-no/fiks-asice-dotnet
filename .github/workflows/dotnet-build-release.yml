@@ -133,14 +133,14 @@ jobs:
           ks_github_app_id: ${{ vars.KS_RUNNER_APP_ID }}
           ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
 
-      - name: Trigger Test Suite
+      - name: Trigger fiks-asice-integration-test
         id: trigger
         uses: actions/github-script@v8
         with:
           github-token: ${{ steps.setup-github-app.outputs.app_token }}
           script: |
             const intOwner = 'ks-no';
-            const intRepo = 'asice-testsuite';
+            const intRepo = 'fiks-asice-dotnet-integration-tests';
             const workflowId = 'testsuite.yml';
             const componentVersion = '${{ needs.initialize.outputs.full-version }}';
             const clientOwner = context.repo.owner;
@@ -173,10 +173,10 @@ jobs:
                 checkRunId: String(checkRun.id)
               }
             });
-            console.log(`Test suite triggered (check run #${checkRun.id})`);
+            console.log(`Integration tests triggered (check run #${checkRun.id})`);
             core.setOutput('check-run-id', String(checkRun.id));
 
-      - name: Wait for Test Suite
+      - name: Wait for fiks-asice-dotnet-integration-tests
         if: github.event.inputs.isRelease == 'true'
         uses: actions/github-script@v8
         with:
