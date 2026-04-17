@@ -1,10 +1,4 @@
 version: 2
-registries:
-  nuget-feed-artifactory-v3:
-    type: nuget-feed
-    url: https://artifactory.fiks.ks.no/artifactory/api/nuget/v3/nuget-all/index.json
-    username: tok-dependabot
-    password: ${{secrets.DEPENDABOT}}
 updates:
   - package-ecosystem: nuget
     directory: "/"
@@ -13,8 +7,6 @@ updates:
       time: "03:00"
       timezone: Europe/Oslo
     open-pull-requests-limit: 15
-    registries:
-      - nuget-feed-artifactory-v3
     groups:
       fiks-deps:
         patterns:
