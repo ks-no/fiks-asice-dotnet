@@ -1,19 +1,15 @@
-permissions:
-  contents: write
-  checks: write
-  
 name: .NET Library Build and Release
 
 on:
   workflow_dispatch:
     inputs:
       isRelease:
-        description: 'Release build?'
+        description: 'Release build? (signs with DigiCert KeyLocker and publishes to nuget.org)'
         type: boolean
         required: false
         default: false
       pushToNugetOrg:
-        description: 'Push to nuget.org? (for pre-release)'
+        description: 'Push an unsigned pre-release to nuget.org?'
         type: boolean
         required: false
         default: false
@@ -31,266 +27,23 @@ on:
         default: 'No review required'
   push:
     branches:
-      - main
       - '**'
 
-env:
-  DOTNET_CLI_TELEMETRY_OPTOUT: 1
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-  DOTNET_NOLOGO: true
+permissions:
+  contents: write
+  checks: write
+  id-token: write
 
 jobs:
-  initialize:
-    name: Initialize
-    runs-on: ubuntu-latest
-    outputs:
-      current-version: ${{ steps.version.outputs.current-version }}
-      next-version: ${{ steps.version.outputs.next-version }}
-      full-version: ${{ steps.version.outputs.full-version }}
-      build-opts: ${{ steps.version.outputs.build-opts }}
-    
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - id: version
-        uses: ks-no/github-actions-public/dotnet-calculate-version@main
-        with:
-          specified-version: ${{ github.event.inputs.specifiedVersion }}
-          is-release: ${{ github.event.inputs.isRelease }}
-          branch-name: ${{ github.ref_name }}
-          run-number: ${{ github.run_number }}
-
-  build-linux:
-    name: Build (Linux)
-    needs: initialize
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          submodules: true
-
-      - name: Build and Test
-        uses: ks-no/github-actions-public/dotnet-build-and-test@main
-        with:
-          build-opts: ${{ needs.initialize.outputs.build-opts }}
-          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
-          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
-
-      - name: Test Results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Tests (Linux)
-          path: '**/*.trx'
-          reporter: dotnet-trx
-          fail-on-error: false
-
-      - name: Generate SBOM
-        if: github.ref == 'refs/heads/main'
-        uses: ks-no/github-actions-public/dotnet-generate-sbom@main
-        with:
-          version: ${{ needs.initialize.outputs.full-version }}
-
-      - name: Upload SBOM
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom
-          path: bom.json
-          if-no-files-found: ignore
-
-      - name: Sign Packages
-        uses: ks-no/github-actions-public/dotnet-sign-nuget-packages@main
-        with:
-          certificate-base64: ${{ secrets.CODE_SIGN_CERT_BASE64 }}
-          certificate-password: ${{ secrets.CODE_SIGN_PFX_PASS }}
-
-      - name: Upload Packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: nuget-packages
-          path: |
-            **/Release/*.nupkg
-            **/Release/*.snupkg
-          if-no-files-found: error
-
-      - name: Push to Artifactory
-        uses: ks-no/github-actions-public/dotnet-push-to-artifactory@main
-        with:
-          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
-          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
-
-      - id: setup-github-app
-        uses: ks-no/github-actions-public/setup-github-app@main
-        with:
-          ks_github_app_id: ${{ vars.KS_RUNNER_APP_ID }}
-          ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
-
-      - name: Trigger fiks-asice-integration-test
-        id: trigger
-        uses: actions/github-script@v8
-        with:
-          github-token: ${{ steps.setup-github-app.outputs.app_token }}
-          script: |
-            const intOwner = 'ks-no';
-            const intRepo = 'fiks-asice-dotnet-integration-tests';
-            const workflowId = 'testsuite.yml';
-            const componentVersion = '${{ needs.initialize.outputs.full-version }}';
-            const clientOwner = context.repo.owner;
-            const clientRepo  = context.repo.repo;
-            const clientSha   = context.sha;
-
-            const { data: checkRun } = await github.rest.checks.create({
-              owner: clientOwner,
-              repo:  clientRepo,
-              name:  'Integration Tests',
-              head_sha:   clientSha,
-              status:     'in_progress',
-              started_at: new Date().toISOString(),
-              output: {
-                title:   'Integration Tests',
-                summary: `Running integration tests with version ${componentVersion}`
-              }
-            });
-            await github.rest.actions.createWorkflowDispatch({
-              owner: intOwner,
-              repo:  intRepo,
-              workflow_id: workflowId,
-              ref: 'main',
-              inputs: {
-                componentVersion,
-                componentPackageName: 'KS.Fiks.ASiC-E',
-                clientOwner,
-                clientRepo,
-                clientSha,
-                checkRunId: String(checkRun.id)
-              }
-            });
-            console.log(`Integration tests triggered (check run #${checkRun.id})`);
-            core.setOutput('check-run-id', String(checkRun.id));
-
-      - name: Wait for fiks-asice-dotnet-integration-tests
-        if: github.event.inputs.isRelease == 'true'
-        uses: actions/github-script@v8
-        with:
-          github-token: ${{ steps.setup-github-app.outputs.app_token }}
-          script: |
-            const clientOwner = context.repo.owner;
-            const clientRepo  = context.repo.repo;
-            const checkRunId  = Number('${{ steps.trigger.outputs.check-run-id }}');
-            const pollIntervalMs = 30_000;
-            const maxAttempts = 100;
-            let attempts = 0;
-            let conclusion = null;
-            while (attempts < maxAttempts) {
-              await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
-              const { data: updated } = await github.rest.checks.get({
-                owner: clientOwner,
-                repo:  clientRepo,
-                check_run_id: checkRunId
-              });
-              console.log(`[${++attempts}] status: ${updated.status}, conclusion: ${updated.conclusion}`);
-              if (updated.status === 'completed') {
-                conclusion = updated.conclusion;
-                break;
-              }
-            }
-            if (conclusion !== 'success') {
-              core.setFailed(`Integration tests did not pass (conclusion: ${conclusion})`);
-            }
-
-  build-windows:
-    name: Build (Windows)
-    needs: initialize
-    runs-on: windows-latest
-    timeout-minutes: 60
-    
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          submodules: true
-
-      - name: Build and Test
-        uses: ks-no/github-actions-public/dotnet-build-and-test@main
-        with:
-          build-opts: ${{ needs.initialize.outputs.build-opts }}
-          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
-          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          restore-args: '--disable-parallel --verbosity detailed'
-          test-verbosity: 'detailed'
-
-      - name: Test Results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Tests (Windows)
-          path: '**/*.trx'
-          reporter: dotnet-trx
-          fail-on-error: false
-
-  push-nuget-org:
-    name: Push to NuGet.org
-    needs: [initialize, build-linux, build-windows]
-
-    if: |
-      (github.event.inputs.isRelease == 'true' || github.event.inputs.pushToNugetOrg == 'true') && 
-      !startsWith(github.ref, 'refs/heads/dependabot/')
-    runs-on: windows-latest
-    
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-          path: packages
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - uses: ks-no/github-actions-public/dotnet-push-to-nuget-org@main
-        with:
-          api-key: ${{ secrets.NUGET_API_KEY }}
-          package-path: packages
-
-  release:
-    name: Release
-    needs: [initialize, build-linux, build-windows, push-nuget-org]
-    if: github.event.inputs.isRelease == 'true' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          submodules: true
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-          path: release-packages
-
-      - id: setup-github-app
-        uses: ks-no/github-actions-public/setup-github-app@main
-        with:
-          ks_github_app_id: ${{ vars.KS_RUNNER_APP_ID }}
-          ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
-
-      - uses: ks-no/github-actions-public/create-github-release@main
-        with:
-          current-version: ${{ needs.initialize.outputs.current-version }}
-          next-version: ${{ needs.initialize.outputs.next-version }}
-          release-notes: ${{ github.event.inputs.releaseNotes }}
-          reviewer: ${{ github.event.inputs.reviewer }}
-          github-token: ${{ steps.setup-github-app.outputs.app_token }}
-          actor: ${{ github.actor }}
-          ref-name: ${{ github.ref_name }}
+  build:
+    uses: ks-no/github-actions-public/.github/workflows/dotnet-library-build.yml@main
+    with:
+      is-release: ${{ inputs.isRelease == true }}
+      push-to-nuget-org: ${{ inputs.pushToNugetOrg == true }}
+      specified-version: ${{ inputs.specifiedVersion || '' }}
+      release-notes: ${{ inputs.releaseNotes || 'No changes specified' }}
+      reviewer: ${{ inputs.reviewer || 'No review required' }}
+      integration-test-repo: fiks-asice-dotnet-integration-tests
+      integration-test-workflow: testsuite.yml
+      integration-test-package-name: KS.Fiks.ASiC-E
+    secrets: inherit
