@@ -47,3 +47,76 @@ jobs:
       integration-test-workflow: testsuite.yml
       integration-test-package-name: KS.Fiks.ASiC-E
     secrets: inherit
+
+  publish:
+    name: Publish to NuGet.org
+    needs: build
+    if: |
+      !cancelled() &&
+      needs.build.result == 'success' &&
+      (inputs.isRelease == true || inputs.pushToNugetOrg == true) &&
+      !startsWith(github.ref, 'refs/heads/dependabot/')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download signed packages (release)
+        if: inputs.isRelease == true
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages-signed
+          path: packages
+      - name: Download unsigned packages (pre-release)
+        if: inputs.isRelease != true
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages-unsigned
+          path: packages
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Push to NuGet.org (OIDC trusted publishing)
+        uses: ks-no/github-actions-public/dotnet-push-to-nuget-org@main
+        with:
+          mode: oidc
+          nuget-user: ${{ secrets.NUGET_USER }}
+          package-path: packages
+          verify-signature: ${{ inputs.isRelease == true }}
+          api-key: ''
+
+  release:
+    name: Release
+    needs: [build, publish]
+    if: |
+      !cancelled() &&
+      needs.publish.result == 'success' &&
+      inputs.isRelease == true &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up GitHub App
+        id: setup-github-app
+        uses: ks-no/github-actions-public/setup-github-app@main
+        with:
+          ks_github_app_id: ${{ vars.KS_RUNNER_APP_ID }}
+          ks_github_app_private_key: ${{ secrets.KS_RUNNER_PRIVATE_KEY }}
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: true
+          token: ${{ steps.setup-github-app.outputs.app_token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages-signed
+          path: release-packages
+      - uses: ks-no/github-actions-public/create-github-release@main
+        with:
+          current-version: ${{ needs.build.outputs.current-version }}
+          next-version: ${{ needs.build.outputs.next-version }}
+          release-notes: ${{ inputs.releaseNotes || 'No changes specified' }}
+          reviewer: ${{ inputs.reviewer || 'No review required' }}
+          github-token: ${{ steps.setup-github-app.outputs.app_token }}
+          actor: ${{ github.actor }}
+          ref-name: ${{ github.ref_name }}
