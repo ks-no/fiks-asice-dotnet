@@ -13,6 +13,14 @@ on:
         type: boolean
         required: false
         default: false
+      publishMode:
+        description: 'Auth for nuget.org push: api-key (NUGET_API_KEY, default) or oidc (trusted publishing)'
+        type: choice
+        required: false
+        default: 'api-key'
+        options:
+          - oidc
+          - api-key
       specifiedVersion:
         description: 'Version (X.X.X) - leave empty for auto'
         required: false
@@ -35,7 +43,23 @@ permissions:
   id-token: write
 
 jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require NUGET_API_KEY when publishMode=api-key
+        if: github.event_name == 'workflow_dispatch' && inputs.publishMode == 'api-key'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::publishMode=api-key krever secret NUGET_API_KEY"
+            exit 1
+          fi
+
   build:
+    needs: preflight
     uses: ks-no/github-actions-public/.github/workflows/dotnet-library-build.yml@main
     with:
       is-release: ${{ inputs.isRelease == true }}
@@ -76,14 +100,14 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Push to NuGet.org (OIDC trusted publishing)
+      - name: Push to NuGet.org (${{ inputs.publishMode || 'api-key' }})
         uses: ks-no/github-actions-public/dotnet-push-to-nuget-org@main
         with:
-          mode: oidc
+          mode: ${{ inputs.publishMode || 'api-key' }}
           nuget-user: ${{ secrets.NUGET_USER }}
           package-path: packages
           verify-signature: ${{ inputs.isRelease == true }}
-          api-key: ''
+          api-key: ${{ secrets.NUGET_API_KEY }}
 
   release:
     name: Release
