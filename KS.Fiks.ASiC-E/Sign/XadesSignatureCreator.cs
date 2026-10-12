@@ -152,44 +152,17 @@ namespace KS.Fiks.ASiC_E.Sign
         // RDN (relative distinguised name) for the organization identifier needs to
         // be written using the older "OID.2.5.4.97=<value>" syntax rather than the
         // newer "organizationIdentifier=<value>" syntax.
+        //
+        // Passing an empty symbol table makes BouncyCastle write every RDN
+        // with its numeric OID instead of a symbolic name. The issuer name is
+        // formatted directly rather than rebuilt from strings, since rebuilding
+        // it validates the values and rejects e.g. non-ISO country codes found
+        // in some certificates.
         private static string FindCertificateIssuerName(X509Certificate pubCert)
         {
-            X509Name issuer = pubCert.IssuerDN;
-            IList<DerObjectIdentifier> oids = issuer.GetOidList();
-            IList<string> values = issuer.GetValueList();
-
-            var newOids = new List<DerObjectIdentifier>();
-            var newValues = new List<string>();
-
-            string oidStr = "2.5.4.97";
-
-            for (int i = 0; i < oids.Count; i++)
-            {
-                var oid = oids[i];
-                var val = values[i];
-
-                // If the OID is 2.5.4.97 (meaning organizationIdentifier),
-                // make sure it is written as "OID.2.5.4.97=<value>" instead
-                // of "organizationIdentifier=<value>"
-                if (oid.Id == oidStr)
-                {
-                    newOids.Add(new DerObjectIdentifier(oidStr));
-                    newValues.Add(val);
-                }
-                else
-                {
-                    newOids.Add(oid);
-                    newValues.Add(val);
-                }
-            }
-
-            var customName = new X509Name(newOids, newValues);
-
-            string issuerString = customName.ToString(
+            return pubCert.IssuerDN.ToString(
                 X509Name.DefaultReverse,
                 new Dictionary<DerObjectIdentifier, string>());
-
-            return issuerString;
         }
 
         private static byte[] CanonicalizeSubtree(XNode node)
