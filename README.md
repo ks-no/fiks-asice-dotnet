@@ -105,3 +105,18 @@ using (var asice = reader.Read(inputStream))
     }
 }
 ```
+
+## Logging
+
+The library logs through `Microsoft.Extensions.Logging`. Pass an `ILoggerFactory` to
+`AsiceReader`, `AsiceVerifier`, `SignatureVerifier` or `AsiceBuilder.Create` to get log
+messages, for example the warning when a signing certificate has expired. Without a logger
+factory, nothing is logged.
+
+```csharp
+var reader = new AsiceReader(loggerFactory);
+var verifier = new AsiceVerifier(loggerFactory);
+var builder = AsiceBuilder.Create(
+    outStream, MessageDigestAlgorithm.SHA256, ManifestSpec.Cades, certificateHolder,
+    null, null, loggerFactory);
+```

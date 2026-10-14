@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KS.Fiks.ASiC_E.Model;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace KS.Fiks.ASiC_E.Crypto;
 
@@ -13,16 +14,21 @@ public class DigestVerifier : IDigestReceiver, IDigestVerifier
     private readonly Queue<string> _invalidFiles = new Queue<string>();
     private readonly ILogger<DigestVerifier> _logger;
 
-    private DigestVerifier(IDictionary<string, DeclaredDigestFile> declaredDigests)
+    private DigestVerifier(IDictionary<string, DeclaredDigestFile> declaredDigests, ILoggerFactory loggerFactory)
     {
         _declaredDigests = declaredDigests ?? throw new ArgumentNullException(nameof(declaredDigests));
-        _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<DigestVerifier>();
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DigestVerifier>();
     }
 
     public static DigestVerifier Create(IDictionary<string, DeclaredDigestFile> declaredDigests)
     {
+        return Create(declaredDigests, null);
+    }
+
+    public static DigestVerifier Create(IDictionary<string, DeclaredDigestFile> declaredDigests, ILoggerFactory loggerFactory)
+    {
         var dd = declaredDigests ?? throw new ArgumentNullException(nameof(declaredDigests));
-        return new DigestVerifier(dd);
+        return new DigestVerifier(dd, loggerFactory);
     }
 
     public void ReceiveDigest(string fileName, byte[] digest)
