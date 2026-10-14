@@ -71,6 +71,8 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             var root = XDocument.Load(new MemoryStream(manifest.Data.ToArray())).Root;
             root.Name.ShouldBe(XName.Get("ASiCManifest", "http://uri.etsi.org/02918/v1.2.1#"));
             root.Elements().ShouldAllBe(e => e.Name.NamespaceName == "http://uri.etsi.org/02918/v1.2.1#");
+            root.Descendants().Single(e => e.Name.LocalName == "DigestMethod").Attribute("Algorithm").Value
+                .ShouldBe("http://www.w3.org/2001/04/xmlenc#sha256");
         }
 
         private static ASiCManifestType DeserializeManifest(byte[] data)

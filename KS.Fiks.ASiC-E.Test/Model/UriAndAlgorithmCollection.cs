@@ -14,6 +14,7 @@ namespace KS.Fiks.ASiC_E.Test.Model
             Add(MessageDigestAlgorithm.UriSHA256XmlDsig, MessageDigestAlgorithm.SHA256);
             Add(MessageDigestAlgorithm.UriSHA384XmlDsig, MessageDigestAlgorithm.SHA384);
             Add(MessageDigestAlgorithm.UriSHA512XmlDsig, MessageDigestAlgorithm.SHA512);
+            Add(new Uri("http://www.w3.org/2001/04/xmldsig-more#sha384"), MessageDigestAlgorithm.SHA384);
             Add(new Uri("http://localhost"), null);
             Add(null, null);
         }
