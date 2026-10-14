@@ -3,9 +3,11 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using System.Xml.Serialization;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
 using KS.Fiks.ASiC_E.Sign;
+using KS.Fiks.ASiC_E.Xsd;
 using Shouldly;
 using Xunit;
 
@@ -47,5 +49,30 @@ public class XadesSignatureCreatorTest
             .Value;
 
         issuerName.ShouldBe(ExpectedIssuerName);
+    }
+
+    [Fact(DisplayName = "XAdES signature can be read with XAdESSignaturesType")]
+    public void SignatureMatchesSchemaType()
+    {
+        var certHolder = TestdataLoader.ReadCertificatesForTest();
+
+        using var zipStream = new MemoryStream();
+        using (var archive = new AsiceArchive(
+            zipStream,
+            new CadesManifestCreator(),
+            new XadesSignature(),
+            XadesSignatureCreator.Create(certHolder, null)))
+        {
+            archive.AddEntry(
+                new MemoryStream(Encoding.UTF8.GetBytes("Hello")),
+                new FileRef("hello.txt", MimeType.ForString("text/plain")));
+        }
+
+        using var zipInput = new MemoryStream(zipStream.ToArray());
+        using var zipArchive = new ZipArchive(zipInput, ZipArchiveMode.Read);
+        using var signatureStream = zipArchive.GetEntry("META-INF/signatures.xml").Open();
+
+        var signatures = (XAdESSignaturesType)new XmlSerializer(typeof(XAdESSignaturesType)).Deserialize(signatureStream);
+        signatures.Signature.ShouldHaveSingleItem();
     }
 }

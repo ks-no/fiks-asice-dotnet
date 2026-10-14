@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.RegularExpressions;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Sign;
@@ -23,7 +24,13 @@ public sealed class AsiceReadModel : IDisposable
 
     private AbstractManifest Manifest => CadesManifest;
 
+    private static readonly Regex CadesManifestPattern = new Regex(
+        @"^META-INF/ASiCManifest[^/]*\.xml\z",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     private readonly ZipArchive _zipArchive;
+
+    private readonly byte[] _cadesManifestData;
 
     private readonly DigestVerifier _digestVerifier;
 
@@ -50,6 +57,8 @@ public sealed class AsiceReadModel : IDisposable
         ValidateEntryNames(asicArchive);
 
         _zipArchive = zipArchive;
+        var cadesManifestEntry = FindCadesManifestEntry(asicArchive);
+        _cadesManifestData = cadesManifestEntry == null ? null : ReadEntry(cadesManifestEntry);
 
         CadesManifest = GetCadesManifest();
         Entries = GetAsiceEntries();
@@ -164,26 +173,36 @@ public sealed class AsiceReadModel : IDisposable
         return declaredDigest.MessageDigestAlgorithm;
     }
 
-    private byte[] GetCadesManifestBlob()
+    // Only one manifest is supported. A package with more than one is rejected, so that an extra
+    // unsigned manifest can not be picked instead of the signed one
+    private static ZipArchiveEntry FindCadesManifestEntry(ZipArchive zipArchive)
     {
-        return GetDataForEntry(AsiceConstants.CadesManifestFilename);
+        var manifests = zipArchive.Entries.Where(entry => CadesManifestPattern.IsMatch(entry.FullName)).ToList();
+        if (manifests.Count > 1)
+        {
+            throw new ArgumentException(
+                $"Archive is not supported as it has more than one manifest: {string.Join(",", manifests.Select(m => m.FullName))}",
+                nameof(zipArchive));
+        }
+
+        return manifests.SingleOrDefault();
     }
 
+    private byte[] GetCadesManifestBlob()
+    {
+        return _cadesManifestData;
+    }
+
+    // Parsed from the same bytes as the signature is checked against
     private CadesManifest GetCadesManifest()
     {
-        var cadesManifestEntry = GetCadesManifestEntry();
-        if (cadesManifestEntry == null)
+        if (_cadesManifestData == null)
         {
             return null;
         }
 
-        using var entryStream = cadesManifestEntry.Open();
-        return new CadesManifestReader().FromStream(entryStream);
-    }
-
-    private ZipArchiveEntry GetCadesManifestEntry()
-    {
-        return GetEntry(AsiceConstants.CadesManifestFilename);
+        using var manifestStream = new MemoryStream(_cadesManifestData);
+        return new CadesManifestReader().FromStream(manifestStream);
     }
 
     private ZipArchiveEntry GetEntry(string fullEntryName)
@@ -195,11 +214,11 @@ public sealed class AsiceReadModel : IDisposable
     private byte[] GetDataForEntry(string fullEntryName)
     {
         var zipArchiveEntry = GetEntry(fullEntryName);
-        if (zipArchiveEntry == null)
-        {
-            return null;
-        }
+        return zipArchiveEntry == null ? null : ReadEntry(zipArchiveEntry);
+    }
 
+    private static byte[] ReadEntry(ZipArchiveEntry zipArchiveEntry)
+    {
         using var zipStream = zipArchiveEntry.Open();
         using var bufferStream = new MemoryStream();
         zipStream.CopyTo(bufferStream);

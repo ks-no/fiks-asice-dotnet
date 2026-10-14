@@ -34,9 +34,10 @@ namespace KS.Fiks.ASiC_E.Manifest
         {
             using (var streamReader = new StreamReader(stream, true))
             {
+                // Packages from KS.Fiks.ASiC-E 4.0.x and older use the namespace without the leading zero
                 var xmlString = streamReader.ReadToEnd()
                     .Replace(
-                        "http://uri.etsi.org/02918/v1.2.1#",
+                        "http://uri.etsi.org/2918/v1.2.1#",
                         Namespaces.CadesAsicNamespace)
                     .Replace(
                         "http://uri.etsi.org/02918/v1.1.1#",
