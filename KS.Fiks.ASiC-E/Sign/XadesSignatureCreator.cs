@@ -105,6 +105,7 @@ namespace KS.Fiks.ASiC_E.Sign
         // namespace from Etsi121 to Dsig:
         private static readonly Dictionary<string, XNamespace> Nsmap = new()
         {
+            // Not changed to 02918 like the CAdES manifest, since existing XAdES receivers may depend on it
             [Etsi121] = "http://uri.etsi.org/2918/v1.2.1#", // default in root, only used for root
             [Dsig] = "http://www.w3.org/2000/09/xmldsig#", // default in Signature, the only child of root
         };
