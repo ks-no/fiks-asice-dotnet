@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using KS.Fiks.ASiC_E.Xsd;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Org.BouncyCastle.Cms;
 
 namespace KS.Fiks.ASiC_E.Sign;
@@ -13,8 +14,7 @@ public class SignatureVerifier : ISignatureVerifier
 
     public SignatureVerifier(ILoggerFactory loggerFactory = null)
     {
-        _logger = loggerFactory?.CreateLogger<SignatureVerifier>() ??
-                  LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<SignatureVerifier>();
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<SignatureVerifier>();
     }
 
     public certificate Validate(byte[] data, byte[] signature)

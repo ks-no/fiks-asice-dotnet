@@ -4,6 +4,7 @@ using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
 using KS.Fiks.ASiC_E.Sign;
+using Microsoft.Extensions.Logging;
 
 namespace KS.Fiks.ASiC_E;
 
@@ -103,6 +104,40 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
         Func<IManifestCreator> makeManifestCreator = null,
         Func<DateTime> getUtcNow = null)
     {
+        return Create(
+            stream,
+            messageDigestAlgorithm,
+            manifestSpec,
+            signCertificate,
+            makeManifestCreator,
+            getUtcNow,
+            null);
+    }
+
+    /// <summary>
+    /// Create builder
+    /// </summary>
+    /// <param name="stream">The stream where the ASiC-E data will be written. Can not be null and must be writable</param>
+    /// <param name="messageDigestAlgorithm">The digest algorithm to use. Not nullable</param>
+    /// <param name="manifestSpec">An enum saying the type of signature to add</param>
+    /// <param name="signCertificate">A private/public keypair to use for signing. May be null</param>
+    /// <param name="makeManifestCreator">Function that returns an object that can create custom
+    /// manifests; null to get standard behaviour</param>
+    /// <param name="getUtcNow">Function that returns a DateTime object for the current
+    /// time; used for registering the time of signing in the signature in XAdES. If null,
+    /// DateTime.UtcNow will be used.</param>
+    /// <param name="loggerFactory">Factory used to create loggers. If null, nothing is logged</param>
+    /// <returns>A builder that may be used to construct a ASiC-E package</returns>
+    /// <exception cref="ArgumentException">If the provided stream is not writable</exception>
+    public static AsiceBuilder Create(
+        Stream stream,
+        MessageDigestAlgorithm messageDigestAlgorithm,
+        ManifestSpec manifestSpec,
+        ICertificateHolder signCertificate,
+        Func<IManifestCreator> makeManifestCreator,
+        Func<DateTime> getUtcNow,
+        ILoggerFactory loggerFactory)
+    {
         var outStream = stream ?? throw new ArgumentNullException(nameof(stream));
         var algorithm = messageDigestAlgorithm ?? throw new ArgumentNullException(nameof(messageDigestAlgorithm));
         if (!outStream.CanWrite)
@@ -118,7 +153,8 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
             outStream,
             manifestCreator,
             sigFileRefCreator,
-            sigCreator));
+            sigCreator,
+            loggerFactory));
     }
 
     public AsiceArchive Build()

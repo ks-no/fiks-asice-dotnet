@@ -56,7 +56,7 @@ public sealed class AsiceReadModel : IDisposable
         var declaredDigests = Manifest?.GetDeclaredDigests();
         if (declaredDigests != null)
         {
-            _digestVerifier = Crypto.DigestVerifier.Create(declaredDigests);
+            _digestVerifier = Crypto.DigestVerifier.Create(declaredDigests, _loggerFactory);
         }
     }
 
