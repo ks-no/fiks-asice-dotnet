@@ -40,9 +40,13 @@ namespace KS.Fiks.ASiC_E.Model
         public static readonly Uri UriSHA384XmlDsig = new Uri(UriStringSha384XmlDsig);
         public static readonly Uri UriSHA512XmlEnc = new Uri(UriStringSHA512XmlEnc);
         public static readonly Uri UriSHA512XmlDsig = new Uri(UriStringSHA512XmlDsig);
-        public static readonly MessageDigestAlgorithm SHA256 = new MessageDigestAlgorithm(NameSHA256, UriSHA256XmlDsig);
+        // SHA-256 and SHA-512 are written with the W3C URIs, as Java and EU DSS expect. The xmldsig#
+        // variants are not defined by W3C, but are still read, since packages from 4.0.x use them.
+        // SHA-384 keeps xmldsig#sha384, because neither readers before 4.1.0 nor Java commons-asic
+        // accept its W3C URI (xmldsig-more#sha384). EU DSS therefore does not identify SHA-384.
+        public static readonly MessageDigestAlgorithm SHA256 = new MessageDigestAlgorithm(NameSHA256, UriSHA256XmlEnc);
         public static readonly MessageDigestAlgorithm SHA384 = new MessageDigestAlgorithm(NameSHA384, UriSHA384XmlDsig);
-        public static readonly MessageDigestAlgorithm SHA512 = new MessageDigestAlgorithm(NameSHA512, UriSHA512XmlDsig);
+        public static readonly MessageDigestAlgorithm SHA512 = new MessageDigestAlgorithm(NameSHA512, UriSHA512XmlEnc);
 
         public static MessageDigestAlgorithm FromUri(Uri uri)
         {
@@ -58,6 +62,7 @@ namespace KS.Fiks.ASiC_E.Model
                     return SHA256;
                 case UriStringSha384XmlEnc:
                 case UriStringSha384XmlDsig:
+                case UriStringSha384XmlDsigMore:
                     return SHA384;
                 case UriStringSHA512XmlEnc:
                 case UriStringSHA512XmlDsig:
@@ -74,6 +79,7 @@ namespace KS.Fiks.ASiC_E.Model
         private const string UriStringSha256XmlEnc = "http://www.w3.org/2001/04/xmlenc#sha256";
         private const string UriStringSha384XmlDsig = "http://www.w3.org/2000/09/xmldsig#sha384";
         private const string UriStringSha384XmlEnc = "http://www.w3.org/2001/04/xmlenc#sha384";
+        private const string UriStringSha384XmlDsigMore = "http://www.w3.org/2001/04/xmldsig-more#sha384";
         private const string UriStringSHA512XmlDsig = "http://www.w3.org/2000/09/xmldsig#sha512";
         private const string UriStringSHA512XmlEnc = "http://www.w3.org/2001/04/xmlenc#sha512";
     }
