@@ -1,0 +1,5 @@
+# Test data is signed or hashed byte for byte, so line endings must never be converted
+*.xml -text
+*.p7s binary
+*.asice binary
+*.pdf binary
