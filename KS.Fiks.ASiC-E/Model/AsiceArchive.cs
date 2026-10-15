@@ -94,6 +94,14 @@ public class AsiceArchive : IDisposable
             throw new ArgumentException("Adding files to META-INF is not allowed.");
         }
 
+        if (!EntryPath.IsValid(packageEntry.FileName)
+            || EntryPath.IsFolder(packageEntry.FileName)
+            || packageEntry.FileName == AsiceConstants.FileNameMimeType)
+        {
+            throw new ArgumentException(
+                $"The file name '{packageEntry.FileName}' is not allowed. It must be a relative path to a file, with '/' as separator and without '.' or '..'.");
+        }
+
         _logger.LogDebug("Adding entry '{FileName}' of type '{MimeType}' to the ASiC-e archive", entry.FileName,
             entry.MimeType);
 

@@ -12,6 +12,7 @@ public class DigestVerifier : IDigestReceiver, IDigestVerifier
     private readonly IDictionary<string, DeclaredDigestFile> _declaredDigests;
     private readonly Queue<string> _validFiles = new Queue<string>();
     private readonly Queue<string> _invalidFiles = new Queue<string>();
+    private readonly HashSet<DeclaredDigestFile> _receivedFiles = new HashSet<DeclaredDigestFile>();
     private readonly ILogger<DigestVerifier> _logger;
 
     private DigestVerifier(IDictionary<string, DeclaredDigestFile> declaredDigests, ILoggerFactory loggerFactory)
@@ -34,9 +35,9 @@ public class DigestVerifier : IDigestReceiver, IDigestVerifier
     public void ReceiveDigest(string fileName, byte[] digest)
     {
         _logger.LogDebug("Got digest for file {fileName}", fileName);
-        var declaredDigest = _declaredDigests[fileName];
-        if (declaredDigest != null)
+        if (_declaredDigests.TryGetValue(fileName, out var declaredDigest))
         {
+            _receivedFiles.Add(declaredDigest);
             if (declaredDigest.Digest.SequenceEqual(digest))
             {
                 _logger.LogDebug("Digest verified for file {fileName}", fileName);
@@ -61,6 +62,12 @@ public class DigestVerifier : IDigestReceiver, IDigestVerifier
         if (totalFilesProcessedCount != _declaredDigests.Count)
         {
             throw new DigestVerificationException($"Total number of files processed by the verifier was {totalFilesProcessedCount}, but {_declaredDigests.Count} files was declared");
+        }
+
+        var missingFiles = _declaredDigests.Where(d => !_receivedFiles.Contains(d.Value)).Select(d => d.Key).ToList();
+        if (missingFiles.Count > 0)
+        {
+            throw new DigestVerificationException($"The following declared files were not processed by the verifier: {string.Join(",", missingFiles)}");
         }
 
         return new DigestVerificationResult(_validFiles, _invalidFiles);

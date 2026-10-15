@@ -101,6 +101,33 @@ public class AsiceBuilderTest
         }
     }
 
+    [Theory(DisplayName = "AddFileWithPath rejects invalid paths")]
+    [InlineData("../small.pdf")]
+    [InlineData("root/../../small.pdf")]
+    [InlineData("/small.pdf")]
+    [InlineData("C:/small.pdf")]
+    [InlineData("root\\small.pdf")]
+    [InlineData("./small.pdf")]
+    [InlineData("root//small.pdf")]
+    [InlineData("root/")]
+    [InlineData("mimetype")]
+    public void TestAddFileWithPathRejectsInvalidPath(string path)
+    {
+        using var zipStream = new MemoryStream();
+        using var asiceBuilder = AsiceBuilder.Create(
+            zipStream,
+            MessageDigestAlgorithm.SHA256,
+            ManifestSpec.Cades,
+            null);
+
+        Action addFile = () => asiceBuilder.AddFileWithPath(
+            new MemoryStream(new byte[] { 1 }),
+            path,
+            MimeType.ForString("application/pdf"));
+
+        addFile.ShouldThrow<ArgumentException>();
+    }
+
     [Fact(DisplayName = "Existing Create overloads still accept null arguments")]
     public void TestExistingCreateOverloadsAcceptNull()
     {

@@ -18,11 +18,20 @@ namespace KS.Fiks.ASiC_E.Model
             _digestReceiver = digestReceiver;
         }
 
+        /// <summary>
+        /// The name of the file, without the folders it is in
+        /// </summary>
         public string FileName => _zipArchiveEntry.Name;
+
+        /// <summary>
+        /// The path of the file in the package, including folders, for example <c>root/someFolder/small.pdf</c>.
+        /// The value comes from the sender. Check it before you use it as a path on disk.
+        /// </summary>
+        public string FullName => _zipArchiveEntry.FullName;
 
         public Stream OpenStream()
         {
-            return new DigestReadStream(_zipArchiveEntry.Open(), FileName, _digestAlgorithm, _digestReceiver);
+            return new DigestReadStream(_zipArchiveEntry.Open(), FullName, _digestAlgorithm, _digestReceiver);
         }
     }
 }

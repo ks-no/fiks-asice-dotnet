@@ -47,6 +47,8 @@ public sealed class AsiceReadModel : IDisposable
                 nameof(zipArchive));
         }
 
+        ValidateEntryNames(asicArchive);
+
         _zipArchive = zipArchive;
 
         CadesManifest = GetCadesManifest();
@@ -101,10 +103,49 @@ public sealed class AsiceReadModel : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    private static void ValidateEntryNames(ZipArchive zipArchive)
+    {
+        var invalidPath = zipArchive.Entries.FirstOrDefault(entry => !EntryPath.IsValid(entry.FullName));
+        if (invalidPath != null)
+        {
+            throw new ArgumentException(
+                $"Archive is not a valid ASiC-E archive as the entry '{invalidPath.FullName}' has an invalid path",
+                nameof(zipArchive));
+        }
+
+        // FileName is only the name of the file, so files with the same name in different folders
+        // could overwrite each other if a receiver uses FileName as a key. Names that differ only in
+        // case are allowed in the root folder, as they always have been, but not when folders are involved
+        var duplicateFileName = GetDataEntries(zipArchive)
+            .GroupBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(IsFileNameConflict);
+        if (duplicateFileName != null)
+        {
+            throw new ArgumentException(
+                $"Archive is not supported as more than one file is named '{duplicateFileName.Key}'",
+                nameof(zipArchive));
+        }
+    }
+
+    private static bool IsFileNameConflict(IGrouping<string, ZipArchiveEntry> entriesWithSameName)
+    {
+        var entries = entriesWithSameName.ToList();
+        return entries.Count > 1
+               && (entries.Any(entry => entry.FullName != entry.Name)
+                   || entries.Select(entry => entry.Name).Distinct(StringComparer.Ordinal).Count() < entries.Count);
+    }
+
+    private static IEnumerable<ZipArchiveEntry> GetDataEntries(ZipArchive zipArchive)
+    {
+        return zipArchive.Entries
+            .Where(entry => entry.FullName != AsiceConstants.FileNameMimeType)
+            .Where(entry => !entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
+            .Where(entry => !EntryPath.IsFolder(entry.FullName));
+    }
+
     private IEnumerable<AsiceReadEntry> GetAsiceEntries()
     {
-        return _zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
-            .Where(entry => !entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
+        return GetDataEntries(_zipArchive)
             .Select(entry => new AsiceReadEntry(
                 entry,
                 LookupMessageDigestAlgorithmForEntry(entry.FullName),
@@ -113,8 +154,8 @@ public sealed class AsiceReadModel : IDisposable
 
     private MessageDigestAlgorithm LookupMessageDigestAlgorithmForEntry(string fullEntryName)
     {
-        var declaredDigest = CadesManifest?.Digests[fullEntryName];
-        if (declaredDigest == null)
+        DeclaredDigestFile declaredDigest = null;
+        if (CadesManifest?.Digests?.TryGetValue(fullEntryName, out declaredDigest) != true)
         {
             throw new DigestVerificationException(
                 $"Could not find declared digest method for entry '{fullEntryName}'");
