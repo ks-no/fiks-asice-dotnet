@@ -3,6 +3,7 @@ using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Xsd;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace KS.Fiks.ASiC_E;
 
@@ -14,8 +15,7 @@ public class AsiceVerifier : IAsiceVerifier
     public AsiceVerifier(ILoggerFactory loggerFactory = null)
     {
         _loggerFactory = loggerFactory;
-        _logger = loggerFactory?.CreateLogger<AsiceVerifier>() ??
-                  LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AsiceVerifier>();
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<AsiceVerifier>();
     }
 
     public asicManifest Verify(Stream inputData)

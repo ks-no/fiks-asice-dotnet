@@ -7,7 +7,8 @@ using System.Text;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Sign;
-    using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Org.BouncyCastle.Crypto.IO;
 using Org.BouncyCastle.Security;
 
@@ -44,7 +45,7 @@ public class AsiceArchive : IDisposable
         _signatureFileRefCreator = signatureFileRefCreator;
         _signatureCreator = signatureCreator;
 
-        _logger = loggerFactory?.CreateLogger<AsiceArchive>() ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AsiceArchive>();
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<AsiceArchive>();
         _logger.LogDebug("Creating ASiC-e Zip");
     }
 
@@ -73,7 +74,7 @@ public class AsiceArchive : IDisposable
         _signatureFileRefCreator = signatureFileRefCreator;
         _signatureCreator = signatureCreator;
 
-        _logger = loggerFactory?.CreateLogger<AsiceArchive>() ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AsiceArchive>();
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<AsiceArchive>();
         _logger.LogDebug("Creating ASiC-e Zip");
     }
 

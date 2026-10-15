@@ -100,4 +100,29 @@ public class AsiceBuilderTest
             zipArchive.Entries.ShouldContain(e => e.FullName == fullPath);
         }
     }
+
+    [Fact(DisplayName = "Existing Create overloads still accept null arguments")]
+    public void TestExistingCreateOverloadsAcceptNull()
+    {
+        // Compile-time check: new overloads must not make these calls ambiguous
+        using (var zipStream = new MemoryStream())
+        using (var asiceBuilder = AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, ManifestSpec.Cades, null))
+        {
+            asiceBuilder.ShouldNotBeNull();
+        }
+
+        using (var zipStream = new MemoryStream())
+        using (var asiceBuilder = AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, ManifestSpec.Cades, null, null))
+        {
+            asiceBuilder.ShouldNotBeNull();
+        }
+
+        using (var zipStream = new MemoryStream())
+#pragma warning disable CS0618
+        using (var asiceBuilder = AsiceBuilder.Create(zipStream, MessageDigestAlgorithm.SHA256, null))
+#pragma warning restore CS0618
+        {
+            asiceBuilder.ShouldNotBeNull();
+        }
+    }
 }
