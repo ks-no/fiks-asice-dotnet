@@ -60,14 +60,24 @@ public sealed class AsiceReadModel : IDisposable
         }
     }
 
+    /// <summary>
+    /// Verifies the CAdES signature over the manifest and returns the content of the manifest.
+    /// Only the signature is checked here. To check the digests of the files, read every entry and call
+    /// <see cref="IDigestVerifier.Verification"/>, or use <see cref="AsiceVerifier"/> which does both.
+    /// <c>verified</c> on each file means that the file is listed in a manifest with a valid signature,
+    /// not that its digest has been checked. The trust chain of the signing certificate is not checked.
+    /// </summary>
+    /// <returns>The manifest, or null if the package has no CAdES manifest or no signature</returns>
+    /// <exception cref="SignatureVerificationException">If the signature is invalid</exception>
     public asicManifest VerifiedManifest()
     {
-        if (Signatures?.Containers?.FirstOrDefault() != null && CadesManifest != null)
+        var signature = Signatures?.Containers?.FirstOrDefault();
+        if (signature != null && CadesManifest != null)
         {
             var certificate =
                 new SignatureVerifier(_loggerFactory).Validate(
                     GetCadesManifestBlob(),
-                    Signatures.Containers.FirstOrDefault().Data.ToArray());
+                    signature.Data.ToArray());
             return new asicManifest
             {
                 certificate = new[] { certificate },
@@ -158,7 +168,10 @@ public sealed class AsiceReadModel : IDisposable
     private Signatures ExtractSignaturesFromManifest()
     {
         var signatures = Manifest?.GetSignatureRefs()
-            .Select(s => new SignatureFileContainer(s, GetDataForEntry(s.FileName)));
+            .Select(s => new SignatureFileContainer(
+                s,
+                GetDataForEntry(s.FileName) ?? throw new SignatureVerificationException(
+                    $"The signature file '{s.FileName}' referenced in the manifest is missing")));
         return signatures == null ? null : new Signatures(signatures);
     }
 }

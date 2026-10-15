@@ -106,6 +106,33 @@ using (var asice = reader.Read(inputStream))
 }
 ```
 
+### Verify an ASiC-E package
+
+```csharp
+IAsiceVerifier verifier = new AsiceVerifier();
+using (var inputStream = File.OpenRead("archive.asice"))
+{
+    // Throws DigestVerificationException or SignatureVerificationException if the package is invalid
+    var manifest = verifier.Verify(inputStream);
+    var signer = manifest?.certificate.First();
+}
+```
+
+What the verification covers:
+* The digest of every file matches the digest declared in the manifest.
+* The CAdES signature (`.p7s`) matches the manifest. Every signer in the signature must be valid.
+* If the signature contains a signing time, the signing certificate was valid at that time. The signing time is
+  stated by the signer, so it is not proof of when the signature was made.
+
+What it does not cover:
+* Trust in the signing certificate. The certificate chain, the CA and revocation (CRL/OCSP) are not checked.
+  Check the returned certificate against your own trust store if you need this.
+* Packages without a signature. `Verify` returns `null` for these, after the digests have been checked.
+* XAdES signatures.
+
+`AsiceReadModel.VerifiedManifest()` checks the signature only. To check the digests, read every entry and
+call `DigestVerifier.Verification()`, or use `AsiceVerifier`, which does both.
+
 ## Logging
 
 The library logs through `Microsoft.Extensions.Logging`. Pass an `ILoggerFactory` to

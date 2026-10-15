@@ -27,10 +27,6 @@ namespace KS.Fiks.ASiC_E.Sign
             IEnumerable<AsicePackageEntry> asicPackageEntries)
         {
             var signedDataGenerator = new CmsSignedDataGenerator();
-            signedDataGenerator.AddSigner(
-                _certificateHolder.GetPrivateKey(),
-                _certificateHolder.GetPublicCertificate(),
-                CmsSignedGenerator.DigestSha256);
             signedDataGenerator.AddSignerInfoGenerator(CreateSignerInfoGenerator());
             signedDataGenerator.AddCertificate(_certificateHolder.GetPublicCertificate());
             var signedData =
