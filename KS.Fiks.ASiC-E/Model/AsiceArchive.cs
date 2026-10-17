@@ -89,15 +89,35 @@ public class AsiceArchive : IDisposable
     public AsiceArchive AddEntry(Stream contentStream, FileRef entry)
     {
         var packageEntry = entry ?? throw new ArgumentNullException(nameof(entry), "Entry must be provided");
-        if (packageEntry.FileName.StartsWith("META-INF/", StringComparison.CurrentCultureIgnoreCase))
+        var rule = AsiceEntryPath.FirstViolation(packageEntry.FileName);
+        if ((rule != null && !AsiceEntryPath.IsPortabilityRule(rule.Value))
+            || AsiceEntryPath.IsFolder(packageEntry.FileName)
+            || packageEntry.FileName == AsiceConstants.FileNameMimeType)
+        {
+            throw new ArgumentException(
+                $"The file name '{AsiceEntryPath.Escape(packageEntry.FileName)}' is not allowed: {DescribeInvalidFileName(packageEntry.FileName, rule)}");
+        }
+
+        if (packageEntry.FileName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Adding files to META-INF is not allowed.");
         }
 
-        _logger.LogDebug("Adding entry '{FileName}' of type '{MimeType}' to the ASiC-e archive", entry.FileName,
+        if (rule != null)
+        {
+            _logger.LogWarning(
+                "The file name '{FileName}' is not portable: {Reason}. Receivers on Windows may not be able to write it",
+                AsiceEntryPath.Escape(packageEntry.FileName),
+                AsiceEntryPath.Describe(packageEntry.FileName));
+        }
+
+        _logger.LogDebug(
+            "Adding entry '{FileName}' of type '{MimeType}' to the ASiC-e archive",
+            entry.FileName,
             entry.MimeType);
 
-        _entries.Enqueue(CreateEntry(contentStream,
+        _entries.Enqueue(CreateEntry(
+            contentStream,
             new AsicePackageEntry(entry.FileName, entry.MimeType, _messageDigestAlgorithm)));
         return this;
     }
@@ -129,6 +149,21 @@ public class AsiceArchive : IDisposable
         var manifestContainer = AddManifest(signatureFileRef);
         AddSignature(manifestContainer);
         _zipArchive.Dispose();
+    }
+
+    private static string DescribeInvalidFileName(string fileName, EntryPathRule? rule)
+    {
+        if (rule != null && !AsiceEntryPath.IsPortabilityRule(rule.Value))
+        {
+            return AsiceEntryPath.Describe(fileName);
+        }
+
+        if (AsiceEntryPath.IsFolder(fileName))
+        {
+            return "it must be the path of a file, not a folder";
+        }
+
+        return $"'{AsiceConstants.FileNameMimeType}' is reserved";
     }
 
     private AsicePackageEntry CreateEntry(Stream contentStream, AsicePackageEntry entry)

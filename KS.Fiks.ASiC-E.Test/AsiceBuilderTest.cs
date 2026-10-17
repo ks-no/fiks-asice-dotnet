@@ -1,8 +1,10 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Shouldly;
 using Xunit;
@@ -99,6 +101,67 @@ public class AsiceBuilderTest
             zipArchive.Entries.Count.ShouldBe(4);
             zipArchive.Entries.ShouldContain(e => e.FullName == fullPath);
         }
+    }
+
+    [Theory(DisplayName = "AddFileWithPath rejects invalid paths")]
+    [InlineData("../small.pdf")]
+    [InlineData("root/../../small.pdf")]
+    [InlineData("/small.pdf")]
+    [InlineData("C:/small.pdf")]
+    [InlineData("root\\small.pdf")]
+    [InlineData("./small.pdf")]
+    [InlineData("root//small.pdf")]
+    [InlineData("root/")]
+    [InlineData("mimetype")]
+    [InlineData("a:b")]
+    [InlineData("file\u0000.pdf")]
+    [InlineData("invoice\u0085FAKE.pdf")]
+    [InlineData("con.pdf")]
+    [InlineData("NUL.")]
+    [InlineData(null)]
+    public void TestAddFileWithPathRejectsInvalidPath(string path)
+    {
+        using var zipStream = new MemoryStream();
+        using var asiceBuilder = AsiceBuilder.Create(
+            zipStream,
+            MessageDigestAlgorithm.SHA256,
+            ManifestSpec.Cades,
+            null);
+
+        Action addFile = () => asiceBuilder.AddFileWithPath(
+            new MemoryStream(new byte[] { 1 }),
+            path,
+            MimeType.ForString("application/pdf"));
+
+        addFile.ShouldThrow<ArgumentException>().Message.ShouldContain("is not allowed: ");
+    }
+
+    [Theory(DisplayName = "AddFileWithPath accepts a name that is valid but not portable, with a warning")]
+    [InlineData("file.pdf:hidden")]
+    [InlineData("evil\u202efdp.exe")]
+    [InlineData("~/file.pdf", false)]
+    public void TestAddFileWithPathWarnsAboutNonPortableName(string path, bool expectWarning = true)
+    {
+        var loggerFactory = new CapturingLoggerFactory();
+        using var zipStream = new MemoryStream();
+        using (var asiceBuilder = AsiceBuilder.Create(
+                   zipStream,
+                   MessageDigestAlgorithm.SHA256,
+                   ManifestSpec.Cades,
+                   null,
+                   null,
+                   null,
+                   loggerFactory))
+        {
+            asiceBuilder.AddFileWithPath(
+                new MemoryStream(new byte[] { 1 }),
+                path,
+                MimeType.ForString("application/pdf"));
+        }
+
+        loggerFactory.Entries
+            .Any(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("not portable", StringComparison.Ordinal))
+            .ShouldBe(expectWarning);
     }
 
     [Fact(DisplayName = "Existing Create overloads still accept null arguments")]

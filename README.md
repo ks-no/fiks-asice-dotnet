@@ -133,6 +133,41 @@ What it does not cover:
 `AsiceReadModel.VerifiedManifest()` checks the signature only. To check the digests, read every entry and
 call `DigestVerifier.Verification()`, or use `AsiceVerifier`, which does both.
 
+## File names in packages
+
+`AsiceReadEntry.FullName` is the path of a file inside the package, as the sender wrote it. The reader checks
+that every entry path is *valid*: relative, with `/` as separator, without empty, `.` or `..` segments,
+without control characters or line separators, and without Windows device names such as `CON`, `NUL` and
+`COM1`, which Windows redirects to the device. A valid path combined with a directory using `Path.Combine`
+stays inside that directory. `AsiceReader.Read` rejects packages with other paths, with a file and a folder
+of the same name, or with two files that differ only in Unicode normalisation. `AsiceBuilder.AddFileWithPath`
+rejects the same names.
+
+A valid path is not always a legal file name on every operating system. `AsiceEntryPath.IsPortable` also
+rejects `: * ? " < > |`, segments that end with `.` or a space, bidirectional control characters, and
+segments over 255 bytes or paths over 4096 bytes. The reader
+and the builder accept such names, because they are legal on some systems, and log a warning. Two files in
+the root folder whose names differ only in case are accepted with a warning too; they are the same file on
+Windows and macOS. Check the name before you write a file under it:
+
+```csharp
+foreach (var entry in asice.Entries)
+{
+    if (!AsiceEntryPath.IsPortable(entry.FullName))
+    {
+        throw new InvalidOperationException(
+            $"Refusing to write '{entry.FullName}': {AsiceEntryPath.Describe(entry.FullName)}");
+    }
+
+    var target = Path.Combine(outputDirectory, entry.FullName);
+    // write entry.OpenStream() to target
+}
+```
+
+The rules do not make a name safe for a shell (`~`, `$`, `;` and backticks are allowed), do not look at what
+already exists at the target, such as symbolic links, do not normalise Unicode, and do not know the limits of
+the file system you write to.
+
 ## Logging
 
 The library logs through `Microsoft.Extensions.Logging`. Pass an `ILoggerFactory` to
