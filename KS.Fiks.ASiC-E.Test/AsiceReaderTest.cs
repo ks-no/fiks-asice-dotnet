@@ -66,6 +66,9 @@ namespace KS.Fiks.ASiC_E.Test
         [InlineData("file\u0000.pdf")]
         [InlineData("invoice\u0085FAKE.pdf")]
         [InlineData("a\u2028b.pdf")]
+        [InlineData("con.pdf")]
+        [InlineData("NUL.")]
+        [InlineData("root/aux/file.pdf")]
         public void InvalidPathIsRejected(string path)
         {
             var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
@@ -110,7 +113,6 @@ namespace KS.Fiks.ASiC_E.Test
         }
 
         [Theory(DisplayName = "Package with a name that is valid but not portable is read, with a warning")]
-        [InlineData("con.pdf")]
         [InlineData("file.pdf:hidden")]
         [InlineData("file.pdf.")]
         [InlineData("evil\u202efdp.exe")]
@@ -129,7 +131,7 @@ namespace KS.Fiks.ASiC_E.Test
         [Fact(DisplayName = "Names that are not portable give one warning per package, with the names escaped")]
         public void NonPortableNamesGiveOneWarningPerPackage()
         {
-            var package = BuildPackage("con.pdf", "ab:c.pdf", "evil\u202efdp.exe", "ok.pdf");
+            var package = BuildPackage("file.pdf.", "ab:c.pdf", "evil\u202efdp.exe", "ok.pdf");
             var loggerFactory = new CapturingLoggerFactory();
 
             using var asice = new AsiceReader(loggerFactory).Read(new MemoryStream(package));
@@ -137,7 +139,7 @@ namespace KS.Fiks.ASiC_E.Test
             var warnings = loggerFactory.Entries.Where(entry => entry.Level == LogLevel.Warning).ToList();
             warnings.Count.ShouldBe(1);
             warnings[0].Message.ShouldContain("3 entries");
-            warnings[0].Message.ShouldContain("'con.pdf'");
+            warnings[0].Message.ShouldContain("'file.pdf.'");
             warnings[0].Message.ShouldContain("'ab:c.pdf'");
             warnings[0].Message.ShouldContain("U+202E");
             warnings[0].Message.ShouldNotContain("\u202e");

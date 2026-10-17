@@ -2,7 +2,7 @@ namespace KS.Fiks.ASiC_E.Model;
 
 /// <summary>
 /// A rule that the path of an entry in an ASiC-E package can break. See <see cref="AsiceEntryPath"/>.
-/// The rules up to and including <see cref="ControlCharacter"/> decide whether a path is valid. The rules
+/// The rules up to and including <see cref="ReservedDeviceName"/> decide whether a path is valid. The rules
 /// after that decide whether a valid path is also portable. <see cref="AsiceEntryPath.IsPortabilityRule"/>
 /// relies on this order.
 /// </summary>
@@ -33,6 +33,13 @@ public enum EntryPathRule
     ControlCharacter,
 
     /// <summary>
+    /// A segment is a reserved device name on Windows (CON, PRN, AUX, NUL, COM0 to COM9, LPT0 to LPT9, and
+    /// the forms with superscript digits), with or without an extension. Windows redirects such a name to the
+    /// device, whatever directory it is combined with.
+    /// </summary>
+    ReservedDeviceName,
+
+    /// <summary>
     /// A segment contains a bidirectional control character (U+202A to U+202E, U+2066 to U+2069), which can
     /// change how the name is displayed. Portability rule.
     /// </summary>
@@ -46,12 +53,6 @@ public enum EntryPathRule
 
     /// <summary>A segment ends with '.' or ' ', which Windows removes from a file name. Portability rule.</summary>
     TrailingDotOrSpace,
-
-    /// <summary>
-    /// A segment is a reserved device name on Windows (CON, PRN, AUX, NUL, COM0 to COM9, LPT0 to LPT9, and
-    /// the forms with superscript digits), with or without an extension. Portability rule.
-    /// </summary>
-    ReservedDeviceName,
 
     /// <summary>
     /// A segment is longer than <see cref="AsiceEntryPath.MaxSegmentBytes"/> bytes in UTF-8, the limit of

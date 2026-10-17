@@ -26,7 +26,7 @@ public class AsiceEntryPathTest
         "file.pdf", "root/someFolder/file.pdf", "root/", "~/file.pdf", "~", "$HOME/file.pdf", "a;b`c$d.pdf",
         "Søknad om støtte.pdf", "Sø\u0308knad.pdf", "😀.pdf", " leading space.pdf", "-rf", "..a/b", "a..b",
         "META-INF/ASiCManifest.xml", "META-INF/signature-3f1c.p7s", "mimetype", "docs/mimetype",
-        "CONSOLE.txt", "con.pdf", "CON", "COM1.tar.gz", "lpt9", "COM0.log", "COM\u00b9.txt", "root/NUL/file.pdf", "CON .txt",
+        "CONSOLE.txt", "con.pdf", "CON", "COM1.tar.gz", "lpt9", "COM0.log", "COM\u00b9.txt", "root/NUL/file.pdf", "CON .txt", "NUL.", "NUL",
         string.Empty, "/", "/file.pdf", "//server/share/file.pdf", "C:/file.pdf", "c:file.pdf", "a:b", "ab:c",
         "file.pdf:hidden", "root/C:/file.pdf", "root\\file.pdf", "root\\..\\file.pdf", "root//file.pdf", "root//",
         "./file.pdf", "../file.pdf", "root/../../file.pdf", "../", "./", "META-INF/../file.pdf", ".", "..", "...",
@@ -106,6 +106,9 @@ public class AsiceEntryPathTest
     [InlineData("COM\u00b9.txt", EntryPathRule.ReservedDeviceName)]
     [InlineData("root/NUL/file.pdf", EntryPathRule.ReservedDeviceName)]
     [InlineData("CON .txt", EntryPathRule.ReservedDeviceName)]
+    [InlineData("NUL.", EntryPathRule.ReservedDeviceName)]
+    [InlineData("con.pdf.", EntryPathRule.ReservedDeviceName)]
+    [InlineData("evil\u202e/con.pdf", EntryPathRule.ReservedDeviceName)]
     [InlineData("a:b/../c", EntryPathRule.Absolute)]
     [InlineData("ab:c/../d", EntryPathRule.DotSegment)]
     [InlineData("con.pdf/../c", EntryPathRule.DotSegment)]

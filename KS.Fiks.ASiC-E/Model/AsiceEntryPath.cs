@@ -10,19 +10,19 @@ namespace KS.Fiks.ASiC_E.Model;
 /// The rules for the path of an entry in an ASiC-E package, as read from the zip and as given to
 /// <see cref="AsiceBuilder.AddFileWithPath"/>.
 /// <para>
-/// A <b>valid</b> path is relative, uses '/' as separator, has no empty, '.' or '..' segments, and has no
-/// control characters, line separators or lone surrogates. Combined with a directory using
-/// <c>Path.Combine</c>, a valid path stays inside that directory. The reader rejects packages with entries that
-/// are not valid, and the builder rejects such file names.
+/// A <b>valid</b> path is relative, uses '/' as separator, has no empty, '.' or '..' segments, has no
+/// control characters, line separators or lone surrogates, and has no reserved device name such as <c>CON</c>,
+/// <c>NUL</c> or <c>COM1</c>, which Windows redirects to the device whatever directory it is combined with.
+/// Combined with a directory using <c>Path.Combine</c>, a valid path stays inside that directory. The reader
+/// rejects packages with entries that are not valid, and the builder rejects such file names.
 /// </para>
 /// <para>
 /// A <b>portable</b> path is valid and is also a legal file name on Windows, Linux and macOS: none of
-/// <c>: * ? " &lt; &gt; |</c>, no segment that ends with '.' or ' ', no reserved device name such as <c>CON</c>
-/// or <c>COM1</c>, no bidirectional control characters, and at most <see cref="MaxSegmentBytes"/> bytes per
-/// segment and <see cref="MaxPathBytes"/> bytes in total. The reader and the builder accept paths that are
-/// valid but not portable, and log a warning, because such names are legal on some systems. Check
-/// <see cref="IsPortable"/> before you write a file to disk under a name from a package. On Windows, a reserved
-/// device name is redirected to the device whatever directory it is combined with.
+/// <c>: * ? " &lt; &gt; |</c>, no segment that ends with '.' or ' ', no bidirectional control characters, and
+/// at most <see cref="MaxSegmentBytes"/> bytes per segment and <see cref="MaxPathBytes"/> bytes in total. The
+/// reader and the builder accept paths that are valid but not portable, and log a warning, because such names
+/// are legal on some systems. Check <see cref="IsPortable"/> before you write a file to disk under a name from
+/// a package.
 /// </para>
 /// <para>
 /// No rule makes a name safe for a shell: <c>~</c>, <c>$</c>, <c>;</c>, backticks and a leading '-' are allowed.
@@ -52,7 +52,7 @@ public static class AsiceEntryPath
 
     /// <summary>
     /// True if the path is valid: relative, '/' as separator, no empty, '.' or '..' segments, no control
-    /// characters. See the class documentation.
+    /// characters, no reserved device names. See the class documentation.
     /// </summary>
     public static bool IsValid(string path)
     {
@@ -79,7 +79,7 @@ public static class AsiceEntryPath
     public static bool IsPortabilityRule(EntryPathRule rule)
     {
         // The enum declares the validity rules first, see its documentation
-        return rule > EntryPathRule.ControlCharacter;
+        return rule > EntryPathRule.ReservedDeviceName;
     }
 
     /// <summary>
@@ -185,6 +185,14 @@ public static class AsiceEntryPath
 
         foreach (var segment in segments)
         {
+            if (IsReservedDeviceName(segment))
+            {
+                return new Violation(EntryPathRule.ReservedDeviceName, segment);
+            }
+        }
+
+        foreach (var segment in segments)
+        {
             var bidiIndex = IndexOf(segment, IsBidiControl);
             if (bidiIndex >= 0)
             {
@@ -201,11 +209,6 @@ public static class AsiceEntryPath
             if (last == '.' || last == ' ')
             {
                 return new Violation(EntryPathRule.TrailingDotOrSpace, segment);
-            }
-
-            if (IsReservedDeviceName(segment))
-            {
-                return new Violation(EntryPathRule.ReservedDeviceName, segment);
             }
 
             if (StrictUtf8.GetByteCount(segment) > MaxSegmentBytes)
@@ -248,7 +251,7 @@ public static class AsiceEntryPath
             case EntryPathRule.TrailingDotOrSpace:
                 return $"the segment '{segment}' ends with '.' or ' ', which Windows removes from a file name";
             case EntryPathRule.ReservedDeviceName:
-                return $"the segment '{segment}' is a reserved device name on Windows";
+                return $"the segment '{segment}' is a reserved device name, which Windows redirects to the device";
             case EntryPathRule.SegmentTooLong:
                 return $"the segment '{segment}' is longer than {MaxSegmentBytes} bytes";
             case EntryPathRule.TooLong:
