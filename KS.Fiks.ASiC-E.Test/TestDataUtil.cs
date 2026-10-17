@@ -23,7 +23,7 @@ namespace KS.Fiks.ASiC_E.Test
             return assembly.GetManifestResourceStream(resourceName);
         }
 
-        public static List<(string Name, byte[] Data)> ReadEntries(byte[] package)
+        public static List<ZipEntry> ReadEntries(byte[] package)
         {
             using var zipArchive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
             return zipArchive.Entries.Select(entry =>
@@ -31,19 +31,19 @@ namespace KS.Fiks.ASiC_E.Test
                 using var entryStream = entry.Open();
                 using var buffer = new MemoryStream();
                 entryStream.CopyTo(buffer);
-                return (entry.FullName, buffer.ToArray());
+                return new ZipEntry(entry.FullName, buffer.ToArray());
             }).ToList();
         }
 
-        public static byte[] WriteEntries(IEnumerable<(string Name, byte[] Data)> entries)
+        public static byte[] WriteEntries(IEnumerable<ZipEntry> entries)
         {
             using var zipStream = new MemoryStream();
             using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
             {
-                foreach (var (name, data) in entries)
+                foreach (var entry in entries)
                 {
-                    using var entryStream = zipArchive.CreateEntry(name).Open();
-                    entryStream.Write(data, 0, data.Length);
+                    using var entryStream = zipArchive.CreateEntry(entry.Name).Open();
+                    entryStream.Write(entry.Data, 0, entry.Data.Length);
                 }
             }
 

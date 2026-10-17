@@ -80,7 +80,7 @@ namespace KS.Fiks.ASiC_E.Test
 
             // The tampered package has a correct manifest for the replaced file, but carries the original signature
             var signatureIndex = tampered.FindIndex(e => IsSignature(e.Name));
-            tampered[signatureIndex] = (tampered[signatureIndex].Name, original.Single(e => IsSignature(e.Name)).Data);
+            tampered[signatureIndex] = new ZipEntry(tampered[signatureIndex].Name, original.Single(e => IsSignature(e.Name)).Data);
 
             using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(tampered));
             Action verify = () => new AsiceVerifier().Verify(inputStream);
