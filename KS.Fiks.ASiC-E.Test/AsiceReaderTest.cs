@@ -156,6 +156,59 @@ namespace KS.Fiks.ASiC_E.Test
             new AsiceVerifier().Verify(inputStream).file.Length.ShouldBe(2);
         }
 
+        [Theory(DisplayName = "Manifest is found by the ETSI pattern, ignoring case")]
+        [InlineData("META-INF/ASiCManifest.xml")]
+        [InlineData("META-INF/ASiCManifest1.xml")]
+        [InlineData("META-INF/asicmanifest.xml")]
+        public void ManifestNameFollowsPattern(string manifestName)
+        {
+            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
+            var index = entries.FindIndex(e => e.Name == AsiceConstants.CadesManifestFilename);
+            entries[index] = new ZipEntry(manifestName, entries[index].Data);
+
+            using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(entries));
+            new AsiceVerifier().Verify(inputStream).file.Single().name.ShouldBe("file.txt");
+        }
+
+        [Theory(DisplayName = "Package with more than one manifest is rejected")]
+        [InlineData("META-INF/ASiCManifest2.xml")]
+        [InlineData("META-INF/asicmanifest.xml")]
+        public void MoreThanOneManifestIsRejected(string extraManifestName)
+        {
+            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
+            var manifest = entries.Single(e => e.Name == AsiceConstants.CadesManifestFilename);
+            entries.Add(new ZipEntry(extraManifestName, manifest.Data));
+            var package = TestDataUtil.WriteEntries(entries);
+
+            Action read = () => new AsiceReader().Read(new MemoryStream(package));
+
+            read.ShouldThrow<ArgumentException>().Message.ShouldContain("more than one manifest");
+        }
+
+        [Theory(DisplayName = "Files in META-INF that do not match the manifest pattern are ignored")]
+        [InlineData("META-INF/ASiCManifest.xml.bak")]
+        [InlineData("META-INF/x/ASiCManifest.xml")]
+        [InlineData("META-INF/ASiCManifest.xml\n")]
+        public void NonMatchingManifestNameIsIgnored(string otherName)
+        {
+            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
+            entries.Add(new ZipEntry(otherName, Encoding.UTF8.GetBytes("<not-the-manifest/>")));
+
+            using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(entries));
+            new AsiceVerifier().Verify(inputStream).file.Single().name.ShouldBe("file.txt");
+        }
+
+        [Fact(DisplayName = "Package with asicmanifest.xml and the 2918 namespace, as 4.0.x writes, is verified")]
+        public void LegacyManifestIsVerified()
+        {
+            var package = TestdataLoader.ReadFromResource("cades-valid.asice");
+            var manifest = TestDataUtil.ReadEntries(package).Single(e => e.Name == "META-INF/asicmanifest.xml");
+            Encoding.UTF8.GetString(manifest.Data).ShouldContain("http://uri.etsi.org/2918/v1.2.1#");
+
+            using var inputStream = new MemoryStream(package);
+            new AsiceVerifier().Verify(inputStream).file.Length.ShouldBe(2);
+        }
+
         [Fact(DisplayName = "File that is not declared in the manifest gives DigestVerificationException")]
         public void UndeclaredFileIsRejected()
         {
