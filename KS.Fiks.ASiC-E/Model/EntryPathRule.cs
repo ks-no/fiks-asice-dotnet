@@ -40,8 +40,9 @@ public enum EntryPathRule
 
     /// <summary>
     /// A segment is a reserved device name on Windows (CON, PRN, AUX, NUL, COM0 to COM9, LPT0 to LPT9, and
-    /// the forms with superscript digits), with or without an extension. Windows redirects such a name to the
-    /// device, whatever directory it is combined with.
+    /// the forms with superscript digits), alone or followed by an extension or a colon, as in <c>NUL.txt</c>,
+    /// <c>NUL:</c> and <c>NUL:stream</c>. Windows redirects such a name to the device, whatever directory it is
+    /// combined with.
     /// </summary>
     ReservedDeviceName,
 

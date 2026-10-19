@@ -50,6 +50,9 @@ public static class AsiceEntryPath
                 .SelectMany(digit => new[] { "COM" + digit, "LPT" + digit })),
         StringComparer.OrdinalIgnoreCase);
 
+    // Windows reads a device name up to an extension, as in NUL.txt, or a colon, as in NUL: or NUL:stream
+    private static readonly char[] DeviceNameEnds = { '.', ':' };
+
     /// <summary>
     /// True if the path is valid: relative, '/' as separator, no empty, '.' or '..' segments, no control
     /// or bidirectional control characters, no reserved device names. See the class documentation.
@@ -299,8 +302,8 @@ public static class AsiceEntryPath
 
     private static bool IsReservedDeviceName(string segment)
     {
-        var dot = segment.IndexOf(".", StringComparison.Ordinal);
-        var stem = (dot < 0 ? segment : segment.Substring(0, dot)).TrimEnd(' ');
+        var end = segment.IndexOfAny(DeviceNameEnds);
+        var stem = (end < 0 ? segment : segment.Substring(0, end)).TrimEnd(' ');
         return ReservedDeviceNames.Contains(stem);
     }
 

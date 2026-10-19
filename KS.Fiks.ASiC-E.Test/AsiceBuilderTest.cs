@@ -119,6 +119,10 @@ public class AsiceBuilderTest
     [InlineData("evil\u202efdp.exe")]
     [InlineData("con.pdf")]
     [InlineData("NUL.")]
+    [InlineData("folder/NUL:")]
+    [InlineData("NUL:stream")]
+    [InlineData("COM1:")]
+    [InlineData("con :x")]
     [InlineData(null)]
     public void TestAddFileWithPathRejectsInvalidPath(string path)
     {

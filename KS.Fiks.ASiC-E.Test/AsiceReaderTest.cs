@@ -71,6 +71,10 @@ namespace KS.Fiks.ASiC_E.Test
         [InlineData("con.pdf")]
         [InlineData("NUL.")]
         [InlineData("root/aux/file.pdf")]
+        [InlineData("folder/NUL:")]
+        [InlineData("NUL:stream")]
+        [InlineData("COM1:")]
+        [InlineData("con :x")]
         public void InvalidPathIsRejected(string path)
         {
             var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
