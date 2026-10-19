@@ -47,6 +47,8 @@ public sealed class AsiceReadModel : IDisposable
                 nameof(zipArchive));
         }
 
+        ValidateEntryNames(asicArchive);
+
         _zipArchive = zipArchive;
 
         CadesManifest = GetCadesManifest();
@@ -101,10 +103,40 @@ public sealed class AsiceReadModel : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    private static void ValidateEntryNames(ZipArchive zipArchive)
+    {
+        var invalidPath = zipArchive.Entries.FirstOrDefault(entry => !EntryPath.IsValid(entry.FullName));
+        if (invalidPath != null)
+        {
+            throw new ArgumentException(
+                $"Archive is not a valid ASiC-E archive as the entry '{EntryPath.Escape(invalidPath.FullName)}' has an invalid path. It must be relative, with '/' as separator and without empty, '.' or '..' segments",
+                nameof(zipArchive));
+        }
+
+        // FileName is only the name of the file, so files with the same name in different folders
+        // could overwrite each other if a receiver uses FileName as a key
+        var duplicateFileName = GetDataEntries(zipArchive)
+            .GroupBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(entries => EntryPath.IsFileNameConflict(entries.Select(entry => entry.FullName).ToList()));
+        if (duplicateFileName != null)
+        {
+            throw new ArgumentException(
+                $"Archive is not supported as more than one file is named '{EntryPath.Escape(duplicateFileName.Key)}'",
+                nameof(zipArchive));
+        }
+    }
+
+    private static IEnumerable<ZipArchiveEntry> GetDataEntries(ZipArchive zipArchive)
+    {
+        return zipArchive.Entries
+            .Where(entry => entry.FullName != AsiceConstants.FileNameMimeType)
+            .Where(entry => !entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
+            .Where(entry => !EntryPath.IsFolder(entry.FullName));
+    }
+
     private IEnumerable<AsiceReadEntry> GetAsiceEntries()
     {
-        return _zipArchive.Entries.Where(entry => entry.Name != AsiceConstants.FileNameMimeType)
-            .Where(entry => !entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
+        return GetDataEntries(_zipArchive)
             .Select(entry => new AsiceReadEntry(
                 entry,
                 LookupMessageDigestAlgorithmForEntry(entry.FullName),
@@ -113,11 +145,11 @@ public sealed class AsiceReadModel : IDisposable
 
     private MessageDigestAlgorithm LookupMessageDigestAlgorithmForEntry(string fullEntryName)
     {
-        var declaredDigest = CadesManifest?.Digests[fullEntryName];
-        if (declaredDigest == null)
+        DeclaredDigestFile declaredDigest = null;
+        if (CadesManifest?.Digests?.TryGetValue(fullEntryName, out declaredDigest) != true)
         {
             throw new DigestVerificationException(
-                $"Could not find declared digest method for entry '{fullEntryName}'");
+                $"Could not find declared digest method for entry '{EntryPath.Escape(fullEntryName)}'");
         }
 
         return declaredDigest.MessageDigestAlgorithm;
@@ -168,10 +200,13 @@ public sealed class AsiceReadModel : IDisposable
     private Signatures ExtractSignaturesFromManifest()
     {
         var signatures = Manifest?.GetSignatureRefs()
-            .Select(s => new SignatureFileContainer(
-                s,
-                GetDataForEntry(s.FileName) ?? throw new SignatureVerificationException(
-                    $"The signature file '{s.FileName}' referenced in the manifest is missing")));
+            .Select(s => new SignatureFileContainer(s, GetSignatureData(s.FileName)));
         return signatures == null ? null : new Signatures(signatures);
+    }
+
+    private byte[] GetSignatureData(string fileName)
+    {
+        return GetDataForEntry(fileName) ?? throw new SignatureVerificationException(
+            $"The signature file '{EntryPath.Escape(fileName)}' referenced in the manifest is missing");
     }
 }

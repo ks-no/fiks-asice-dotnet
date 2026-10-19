@@ -133,6 +133,35 @@ What it does not cover:
 `AsiceReadModel.VerifiedManifest()` checks the signature only. To check the digests, read every entry and
 call `DigestVerifier.Verification()`, or use `AsiceVerifier`, which does both.
 
+## File names in packages
+
+`AsiceReadEntry.FullName` is the path of a file inside the package, as the sender wrote it, and
+`AsiceReadEntry.FileName` is the name of the file without the folders it is in. The reader follows the ZIP
+specification, which ETSI EN 319 162-1 refers to, and rejects packages where a path is absolute, has a drive
+letter or uses `\` as separator. It also rejects paths with empty, `.` or `..` segments, and packages where two
+files have the same `FileName` and one of them is in a folder, as they could overwrite each other if you use
+`FileName` as a key. `AsiceBuilder.AddFile` and `AddFileWithPath` reject the same names.
+
+The reader does not check that a name is legal on the system you write to. On Windows, for example, `NUL` is
+a device and `what?.pdf` is not a legal file name. Check the full path before you write a file under it:
+
+```csharp
+var root = Path.GetFullPath(outputDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+foreach (var entry in asice.Entries)
+{
+    var target = Path.GetFullPath(Path.Combine(root, entry.FullName));
+    if (!target.StartsWith(root, StringComparison.Ordinal))
+    {
+        throw new InvalidOperationException($"Refusing to write '{entry.FullName}' outside {root}");
+    }
+
+    Directory.CreateDirectory(Path.GetDirectoryName(target));
+    // write entry.OpenStream() to target
+}
+```
+
+Never pass a name from a package to a shell.
+
 ## Logging
 
 The library logs through `Microsoft.Extensions.Logging`. Pass an `ILoggerFactory` to

@@ -11,11 +11,6 @@ using Xunit;
 
 namespace KS.Fiks.ASiC_E.Test;
 
-[CollectionDefinition(nameof(LoggerFactoryTest), DisableParallelization = true)]
-public class LoggerFactoryTestCollection
-{
-}
-
 // Runs without parallelization so that threads started by other tests do not affect the thread count
 [Collection(nameof(LoggerFactoryTest))]
 public class LoggerFactoryTest

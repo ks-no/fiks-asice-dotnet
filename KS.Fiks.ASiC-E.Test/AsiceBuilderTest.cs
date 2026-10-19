@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
 using Moq;
@@ -99,6 +100,98 @@ public class AsiceBuilderTest
             zipArchive.Entries.Count.ShouldBe(4);
             zipArchive.Entries.ShouldContain(e => e.FullName == fullPath);
         }
+    }
+
+    [Theory(DisplayName = "AddFileWithPath rejects invalid paths")]
+    [InlineData("../small.pdf")]
+    [InlineData("root/../../small.pdf")]
+    [InlineData("/small.pdf")]
+    [InlineData("C:/small.pdf")]
+    [InlineData("root\\small.pdf")]
+    [InlineData("./small.pdf")]
+    [InlineData("root//small.pdf")]
+    [InlineData("root/")]
+    [InlineData("mimetype")]
+    [InlineData("a:b")]
+    [InlineData(null)]
+    public void TestAddFileWithPathRejectsInvalidPath(string path)
+    {
+        using var zipStream = new MemoryStream();
+        using var asiceBuilder = AsiceBuilder.Create(
+            zipStream,
+            MessageDigestAlgorithm.SHA256,
+            ManifestSpec.Cades,
+            null);
+
+        Action addFile = () => asiceBuilder.AddFileWithPath(
+            new MemoryStream(new byte[] { 1 }),
+            path,
+            MimeType.ForString("application/pdf"));
+
+        addFile.ShouldThrow<ArgumentException>().Message.ShouldContain("is not allowed");
+    }
+
+    [Theory(DisplayName = "AddFileWithPath rejects the names the package itself uses, whatever their case")]
+    [InlineData("META-INF")]
+    [InlineData("meta-inf")]
+    [InlineData("MIMETYPE")]
+    public void TestAddFileWithPathRejectsMetaInf(string path)
+    {
+        using var zipStream = new MemoryStream();
+        using var asiceBuilder = AsiceBuilder.Create(
+            zipStream,
+            MessageDigestAlgorithm.SHA256,
+            ManifestSpec.Cades,
+            null);
+
+        Action addFile = () => asiceBuilder.AddFileWithPath(
+            new MemoryStream(new byte[] { 1 }),
+            path,
+            MimeType.ForString("application/pdf"));
+
+        addFile.ShouldThrow<ArgumentException>().Message.ShouldContain("not allowed");
+    }
+
+    [Theory(DisplayName = "AddFileWithPath rejects a file that cannot be told apart from another by its file name")]
+    [InlineData("a/readme.txt", "b/readme.txt")]
+    [InlineData("readme.txt", "a/readme.txt")]
+    [InlineData("a/Readme.txt", "b/readme.txt")]
+    [InlineData("readme.txt", "readme.txt")]
+    public void TestAddFileWithPathRejectsSameFileName(string path, string otherPath)
+    {
+        using var zipStream = new MemoryStream();
+        using var asiceBuilder = AsiceBuilder.Create(
+            zipStream,
+            MessageDigestAlgorithm.SHA256,
+            ManifestSpec.Cades,
+            null);
+        asiceBuilder.AddFileWithPath(new MemoryStream(new byte[] { 1 }), path, MimeType.ForString("text/plain"));
+
+        Action addFile = () => asiceBuilder.AddFileWithPath(
+            new MemoryStream(new byte[] { 2 }),
+            otherPath,
+            MimeType.ForString("text/plain"));
+
+        addFile.ShouldThrow<ArgumentException>().Message.ShouldContain("the package already has a file named 'readme.txt'");
+    }
+
+    [Fact(DisplayName = "AddFile accepts file names that differ only in case in the root folder, as before")]
+    public void TestAddFileAcceptsSameFileNameWithDifferentCaseInRoot()
+    {
+        using var zipStream = new MemoryStream();
+        using (var asiceBuilder = AsiceBuilder.Create(
+                   zipStream,
+                   MessageDigestAlgorithm.SHA256,
+                   ManifestSpec.Cades,
+                   null))
+        {
+            asiceBuilder.AddFile(new MemoryStream(new byte[] { 1 }), "Report.txt");
+            asiceBuilder.AddFile(new MemoryStream(new byte[] { 2 }), "report.txt");
+        }
+
+        using var zipArchive = new ZipArchive(new MemoryStream(zipStream.ToArray()), ZipArchiveMode.Read);
+        zipArchive.Entries.Select(e => e.FullName).ShouldContain("Report.txt");
+        zipArchive.Entries.Select(e => e.FullName).ShouldContain("report.txt");
     }
 
     [Fact(DisplayName = "Existing Create overloads still accept null arguments")]

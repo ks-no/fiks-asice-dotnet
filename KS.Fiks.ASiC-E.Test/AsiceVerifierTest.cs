@@ -75,14 +75,14 @@ namespace KS.Fiks.ASiC_E.Test
         public void ReplacedManifestWithOriginalSignatureIsRejected()
         {
             var certificateHolder = TestdataLoader.ReadCertificatesForTest();
-            var original = ReadEntries(BuildPackage(certificateHolder, "original"));
-            var tampered = ReadEntries(BuildPackage(certificateHolder, "tampered"));
+            var original = TestDataUtil.ReadEntries(BuildPackage(certificateHolder, "original"));
+            var tampered = TestDataUtil.ReadEntries(BuildPackage(certificateHolder, "tampered"));
 
             // The tampered package has a correct manifest for the replaced file, but carries the original signature
             var signatureIndex = tampered.FindIndex(e => IsSignature(e.Name));
-            tampered[signatureIndex] = (tampered[signatureIndex].Name, original.Single(e => IsSignature(e.Name)).Data);
+            tampered[signatureIndex] = new ZipEntry(tampered[signatureIndex].Name, original.Single(e => IsSignature(e.Name)).Data);
 
-            using var inputStream = new MemoryStream(WriteEntries(tampered));
+            using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(tampered));
             Action verify = () => new AsiceVerifier().Verify(inputStream);
 
             verify.ShouldThrow<SignatureVerificationException>();
@@ -91,13 +91,79 @@ namespace KS.Fiks.ASiC_E.Test
         [Fact(DisplayName = "Package where the signature file is missing is rejected")]
         public void MissingSignatureFileIsRejected()
         {
-            var entries = ReadEntries(BuildPackage(TestdataLoader.ReadCertificatesForTest(), "content"));
+            var entries = TestDataUtil.ReadEntries(BuildPackage(TestdataLoader.ReadCertificatesForTest(), "content"));
             entries.RemoveAll(e => IsSignature(e.Name));
 
-            using var inputStream = new MemoryStream(WriteEntries(entries));
+            using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(entries));
             Action verify = () => new AsiceVerifier().Verify(inputStream);
 
             verify.ShouldThrow<SignatureVerificationException>().Message.ShouldContain("is missing");
+        }
+
+        [Fact(DisplayName = "A signature file name from the manifest with a line separator is escaped in the message")]
+        public void MissingSignatureFileNameIsEscaped()
+        {
+            var entries = TestDataUtil.ReadEntries(BuildPackage(TestdataLoader.ReadCertificatesForTest(), "content"));
+            var signatureName = entries.Single(e => IsSignature(e.Name)).Name;
+            var manifestIndex = entries.FindIndex(e => e.Name == AsiceConstants.CadesManifestFilename);
+            var manifest = Encoding.UTF8.GetString(entries[manifestIndex].Data)
+                .Replace(signatureName, "META-INF/a\u2028b.p7s", StringComparison.Ordinal);
+            entries[manifestIndex] = new ZipEntry(AsiceConstants.CadesManifestFilename, Encoding.UTF8.GetBytes(manifest));
+
+            using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(entries));
+            Action verify = () => new AsiceVerifier().Verify(inputStream);
+
+            var message = verify.ShouldThrow<SignatureVerificationException>().Message;
+            message.ShouldContain("META-INF/aU+2028b.p7s");
+            message.ShouldNotContain("\u2028");
+        }
+
+        [Theory(DisplayName = "Verify package with files in folders")]
+        [InlineData("root/small.pdf")]
+        [InlineData("root/someFolder/small.pdf")]
+        public void VerifyFilesInFolders(string path)
+        {
+            using var zipStream = new MemoryStream();
+            using (var builder = AsiceBuilder.Create(
+                       zipStream,
+                       MessageDigestAlgorithm.SHA256,
+                       ManifestSpec.Cades,
+                       TestdataLoader.ReadCertificatesForTest()))
+            {
+                using var pdf = File.OpenRead("small.pdf");
+                builder.AddFileWithPath(pdf, path, MimeType.ForString("application/pdf"));
+                builder.AddFile(new MemoryStream(Encoding.UTF8.GetBytes("content")), "file.txt");
+            }
+
+            using var inputStream = new MemoryStream(zipStream.ToArray());
+            var asicManifest = new AsiceVerifier().Verify(inputStream);
+
+            asicManifest.file.Select(f => f.name).ShouldBe(new[] { path, "file.txt" }, ignoreOrder: true);
+        }
+
+        [Fact(DisplayName = "Package where a declared file is missing and another file is duplicated is rejected")]
+        public void MissingAndDuplicatedFileIsRejected()
+        {
+            using var zipStream = new MemoryStream();
+            using (var builder = AsiceBuilder.Create(
+                       zipStream,
+                       MessageDigestAlgorithm.SHA256,
+                       ManifestSpec.Cades,
+                       TestdataLoader.ReadCertificatesForTest()))
+            {
+                builder.AddFile(new MemoryStream(Encoding.UTF8.GetBytes("a")), "a.txt");
+                builder.AddFile(new MemoryStream(Encoding.UTF8.GetBytes("b")), "b.txt");
+            }
+
+            // Replace b.txt with a second copy of a.txt, so that the number of files still matches the manifest
+            var entries = TestDataUtil.ReadEntries(zipStream.ToArray());
+            var a = entries.Single(e => e.Name == "a.txt");
+            entries[entries.FindIndex(e => e.Name == "b.txt")] = a;
+
+            using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(entries));
+            Action verify = () => new AsiceVerifier().Verify(inputStream);
+
+            verify.ShouldThrow<ArgumentException>();
         }
 
         private static byte[] BuildPackage(ICertificateHolder certificateHolder, string content)
@@ -119,37 +185,10 @@ namespace KS.Fiks.ASiC_E.Test
 
         private static int SignerCount(byte[] package)
         {
-            var entries = ReadEntries(package);
+            var entries = TestDataUtil.ReadEntries(package);
             var manifest = entries.Single(e => e.Name == AsiceConstants.CadesManifestFilename).Data;
             var signature = entries.Single(e => IsSignature(e.Name)).Data;
             return new CmsSignedData(new CmsProcessableByteArray(manifest), signature).GetSignerInfos().Count;
-        }
-
-        private static List<(string Name, byte[] Data)> ReadEntries(byte[] package)
-        {
-            using var zipArchive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
-            return zipArchive.Entries.Select(entry =>
-            {
-                using var entryStream = entry.Open();
-                using var buffer = new MemoryStream();
-                entryStream.CopyTo(buffer);
-                return (entry.FullName, buffer.ToArray());
-            }).ToList();
-        }
-
-        private static byte[] WriteEntries(IEnumerable<(string Name, byte[] Data)> entries)
-        {
-            using var zipStream = new MemoryStream();
-            using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
-            {
-                foreach (var (name, data) in entries)
-                {
-                    using var entryStream = zipArchive.CreateEntry(name).Open();
-                    entryStream.Write(data, 0, data.Length);
-                }
-            }
-
-            return zipStream.ToArray();
         }
     }
 }
