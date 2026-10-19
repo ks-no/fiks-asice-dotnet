@@ -25,12 +25,11 @@ namespace KS.Fiks.ASiC_E.Model
 
         /// <summary>
         /// The path of the file in the package, including folders, for example <c>root/someFolder/small.pdf</c>.
-        /// The value comes from the sender. The reader has checked that it is valid as defined by
-        /// <see cref="AsiceEntryPath"/>: relative, with '/' as separator, without empty, '.' or '..' segments,
-        /// without control characters and without reserved device names, so that <c>Path.Combine(directory, FullName)</c> stays inside
-        /// <c>directory</c>. It has not checked that the name is legal on every operating system. Use
-        /// <see cref="AsiceEntryPath.IsPortable"/> before you write the file to disk under this name, and never
-        /// pass the name to a shell.
+        /// The value comes from the sender. The reader has checked that it is relative, uses '/' as separator and
+        /// has no empty, '.' or '..' segments. It has not checked that the name is legal on the system you write
+        /// to, and on Windows a name such as <c>NUL</c> is a device. Check the full path with
+        /// <c>Path.GetFullPath</c> before you write the file to disk, see the README, and never pass the name to
+        /// a shell.
         /// </summary>
         public string FullName => _zipArchiveEntry.FullName;
 

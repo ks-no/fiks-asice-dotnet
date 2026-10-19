@@ -185,11 +185,11 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
 
     /// <summary>
     /// Adds a file at the given path in the package, for example <c>root/someFolder/small.pdf</c>. The path must
-    /// be valid as defined by <see cref="AsiceEntryPath"/>: relative, with '/' as separator, without empty,
-    /// '.' or '..' segments and without reserved device names such as <c>con.pdf</c>. A path that is valid but
-    /// not portable, for example <c>what?.pdf</c>, is accepted with a warning in the log.
+    /// be relative, with '/' as separator and without empty, '.' or '..' segments. Two files may not have the
+    /// same file name if one of them is in a folder, as receivers that use <see cref="AsiceReadEntry.FileName"/>
+    /// could not tell them apart.
     /// </summary>
-    /// <exception cref="ArgumentException">If the path is not valid, is a folder, or is <c>mimetype</c></exception>
+    /// <exception cref="ArgumentException">If the path is not valid, is a folder, is <c>mimetype</c> or <c>META-INF</c>, or cannot be told apart from a file already added by its file name</exception>
     public IAsiceBuilder<AsiceArchive> AddFileWithPath(Stream stream, string filename, MimeType mimeType)
     {
         _asiceArchive.AddEntry(stream, new FileRef(filename, mimeType));

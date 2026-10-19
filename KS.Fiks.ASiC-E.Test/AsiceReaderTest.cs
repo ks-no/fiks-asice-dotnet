@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Model;
-using Microsoft.Extensions.Logging;
 using Shouldly;
 using Xunit;
 
@@ -57,29 +56,15 @@ namespace KS.Fiks.ASiC_E.Test
         [InlineData("root/../../file.pdf")]
         [InlineData("/file.pdf")]
         [InlineData("C:/file.pdf")]
+        [InlineData("a:b")]
         [InlineData("root\\file.pdf")]
         [InlineData("./file.pdf")]
         [InlineData("root//file.pdf")]
         [InlineData("META-INF/../file.pdf")]
         [InlineData("../")]
-        [InlineData("a:b")]
-        [InlineData("file\u0000.pdf")]
-        [InlineData("invoice\u0085FAKE.pdf")]
-        [InlineData("a\u2028b.pdf")]
-        [InlineData("evil\u202efdp.exe")]
-        [InlineData("root/a\u2066b/file.pdf")]
-        [InlineData("con.pdf")]
-        [InlineData("NUL.")]
-        [InlineData("root/aux/file.pdf")]
-        [InlineData("folder/NUL:")]
-        [InlineData("NUL:stream")]
-        [InlineData("COM1:")]
-        [InlineData("con :x")]
         public void InvalidPathIsRejected(string path)
         {
-            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
-            entries.Add(new ZipEntry(path, Encoding.UTF8.GetBytes("content")));
-            var package = TestDataUtil.WriteEntries(entries);
+            var package = AddEntries(BuildPackage("file.txt"), path);
 
             Action read = () => new AsiceReader().Read(new MemoryStream(package));
 
@@ -89,9 +74,7 @@ namespace KS.Fiks.ASiC_E.Test
         [Fact(DisplayName = "The error message writes control characters as U+XXXX")]
         public void InvalidPathIsEscapedInTheErrorMessage()
         {
-            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
-            entries.Add(new ZipEntry("file\n.pdf", Encoding.UTF8.GetBytes("content")));
-            var package = TestDataUtil.WriteEntries(entries);
+            var package = AddEntries(BuildPackage("file.txt"), "../file\n.pdf");
 
             Action read = () => new AsiceReader().Read(new MemoryStream(package));
 
@@ -100,112 +83,22 @@ namespace KS.Fiks.ASiC_E.Test
             message.ShouldNotContain("\n");
         }
 
-        [Theory(DisplayName = "Package with a valid path that only a shell would treat specially is read and verified")]
+        [Theory(DisplayName = "Package with a valid path is read and verified, also when the name is not legal on every system")]
         [InlineData("~/file.pdf")]
         [InlineData("$HOME/file.pdf")]
         [InlineData("Søknad om støtte.pdf")]
         [InlineData("a;b`c.pdf")]
+        [InlineData("con.pdf")]
+        [InlineData("what?.pdf")]
         public void ValidPathIsAccepted(string path)
         {
             var package = BuildPackage(path);
-            var loggerFactory = new CapturingLoggerFactory();
 
-            using var asice = new AsiceReader(loggerFactory).Read(new MemoryStream(package));
+            using var asice = new AsiceReader().Read(new MemoryStream(package));
             asice.Entries.Single().FullName.ShouldBe(path);
 
             using var inputStream = new MemoryStream(package);
             new AsiceVerifier().Verify(inputStream).ShouldNotBeNull();
-            loggerFactory.Entries.ShouldNotContain(entry => entry.Level == LogLevel.Warning);
-        }
-
-        [Theory(DisplayName = "Package with a name that is valid but not portable is read, with a warning")]
-        [InlineData("file.pdf:hidden")]
-        [InlineData("file.pdf.")]
-        public void NonPortableNameIsReadWithWarning(string path)
-        {
-            var package = BuildPackage(path);
-            var loggerFactory = new CapturingLoggerFactory();
-
-            using var asice = new AsiceReader(loggerFactory).Read(new MemoryStream(package));
-            asice.Entries.Single().FullName.ShouldBe(path);
-
-            loggerFactory.Entries.ShouldContain(entry =>
-                entry.Level == LogLevel.Warning && entry.Message.Contains("not portable", StringComparison.Ordinal));
-        }
-
-        [Fact(DisplayName = "Names that are not portable give one warning per package")]
-        public void NonPortableNamesGiveOneWarningPerPackage()
-        {
-            var package = BuildPackage("file.pdf.", "ab:c.pdf", "what?.pdf", "ok.pdf");
-            var loggerFactory = new CapturingLoggerFactory();
-
-            using var asice = new AsiceReader(loggerFactory).Read(new MemoryStream(package));
-
-            var warnings = loggerFactory.Entries.Where(entry => entry.Level == LogLevel.Warning).ToList();
-            warnings.Count.ShouldBe(1);
-            warnings[0].Message.ShouldContain("3 entries");
-            warnings[0].Message.ShouldContain("'file.pdf.'");
-            warnings[0].Message.ShouldContain("'ab:c.pdf'");
-            warnings[0].Message.ShouldContain("'what?.pdf'");
-            warnings[0].Message.ShouldNotContain("ok.pdf");
-        }
-
-        [Fact(DisplayName = "Package with a file and a folder with the same name is rejected")]
-        public void FileAndFolderWithSameNameIsRejected()
-        {
-            var package = BuildPackage("a", "a/b.txt");
-
-            Action read = () => new AsiceReader().Read(new MemoryStream(package));
-
-            read.ShouldThrow<ArgumentException>().Message.ShouldContain("'a' is both a file and a folder");
-        }
-
-        [Fact(DisplayName = "Package with a folder where the mimetype file is is rejected")]
-        public void FolderWithSameNameAsMimetypeIsRejected()
-        {
-            var package = BuildPackage("mimetype/payload.txt");
-
-            Action read = () => new AsiceReader().Read(new MemoryStream(package));
-
-            read.ShouldThrow<ArgumentException>().Message.ShouldContain("'mimetype' is both a file and a folder");
-        }
-
-        [Fact(DisplayName = "Package with a folder where the manifest is is rejected")]
-        public void FolderWithSameNameAsManifestIsRejected()
-        {
-            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
-            entries.Add(new ZipEntry(AsiceConstants.CadesManifestFilename + "/", Array.Empty<byte>()));
-            var package = TestDataUtil.WriteEntries(entries);
-
-            Action read = () => new AsiceReader().Read(new MemoryStream(package));
-
-            read.ShouldThrow<ArgumentException>().Message
-                .ShouldContain($"'{AsiceConstants.CadesManifestFilename}' is both a file and a folder");
-        }
-
-        [Fact(DisplayName = "Package with a deeply nested path can be read without using memory quadratic in the depth")]
-        public void DeeplyNestedPathIsAccepted()
-        {
-            // 32 000 folders in a name of 64 005 bytes. Keeping every folder prefix would take about 2 GB
-            var path = string.Concat(Enumerable.Repeat("a/", 32000)) + "f.txt";
-            var package = BuildPackage(path);
-
-            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-            using var asice = new AsiceReader().Read(new MemoryStream(package));
-            var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-
-            asice.Entries.Single().FullName.ShouldBe(path);
-            allocated.ShouldBeLessThan(100L * 1024 * 1024);
-        }
-
-        [Fact(DisplayName = "Package with file names that differ only in Unicode normalisation is rejected")]
-        public void SameFileNameInDifferentNormalizationIsRejected()
-        {
-            var package = BuildPackage("café.pdf", "café.pdf");
-
-            Action read = () => new AsiceReader().Read(new MemoryStream(package));
-
-            read.ShouldThrow<ArgumentException>().Message.ShouldContain("more than one file is named");
         }
 
         [Fact(DisplayName = "Package with folder entries can be read and verified")]
@@ -240,51 +133,45 @@ namespace KS.Fiks.ASiC_E.Test
             verification.ShouldThrow<DigestVerificationException>().Message.ShouldContain("b.txt");
         }
 
-        [Fact(DisplayName = "Package with two files with the same name in different folders is rejected")]
-        public void SameFileNameInDifferentFoldersIsRejected()
+        [Theory(DisplayName = "Package with two files with the same name, where one is in a folder, is rejected")]
+        [InlineData("a/readme.txt", "b/readme.txt")]
+        [InlineData("readme.txt", "a/readme.txt")]
+        [InlineData("a/Readme.txt", "b/readme.txt")]
+        public void SameFileNameInDifferentFoldersIsRejected(string path, string otherPath)
         {
-            var package = BuildPackage("a/readme.txt", "b/readme.txt");
-
-            Action read = () => new AsiceReader().Read(new MemoryStream(package));
-
-            read.ShouldThrow<ArgumentException>().Message.ShouldContain("more than one file is named 'readme.txt'");
-        }
-
-        [Fact(DisplayName = "Package with file names that differ only in case is rejected when folders are involved")]
-        public void SameFileNameWithDifferentCaseInFoldersIsRejected()
-        {
-            var package = BuildPackage("a/Report.txt", "b/report.txt");
+            // The builder does not write such packages, so the entries are added to the zip directly
+            var package = AddEntries(BuildPackage("file.txt"), path, otherPath);
 
             Action read = () => new AsiceReader().Read(new MemoryStream(package));
 
             read.ShouldThrow<ArgumentException>().Message.ShouldContain("more than one file is named");
         }
 
-        [Fact(DisplayName = "Package with file names that differ only in case in the root folder is read as before, with a warning")]
+        [Fact(DisplayName = "Package with file names that differ only in case in the root folder is read as before")]
         public void SameFileNameWithDifferentCaseInRootIsAccepted()
         {
             var package = BuildPackage("Report.txt", "report.txt");
-            var loggerFactory = new CapturingLoggerFactory();
 
             using var inputStream = new MemoryStream(package);
-            new AsiceVerifier(loggerFactory).Verify(inputStream).file.Length.ShouldBe(2);
-
-            using var asice = new AsiceReader(loggerFactory).Read(new MemoryStream(package));
-            loggerFactory.Entries.ShouldContain(entry =>
-                entry.Level == LogLevel.Warning && entry.Message.Contains("differ only in case", StringComparison.Ordinal));
+            new AsiceVerifier().Verify(inputStream).file.Length.ShouldBe(2);
         }
 
         [Fact(DisplayName = "File that is not declared in the manifest gives DigestVerificationException")]
         public void UndeclaredFileIsRejected()
         {
-            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
-            entries.Add(new ZipEntry("extra.txt", Encoding.UTF8.GetBytes("content")));
-            var package = TestDataUtil.WriteEntries(entries);
+            var package = AddEntries(BuildPackage("file.txt"), "extra.txt");
 
             using var asice = new AsiceReader().Read(new MemoryStream(package));
             Action readEntries = () => asice.Entries.ToList();
 
             readEntries.ShouldThrow<DigestVerificationException>().Message.ShouldContain("extra.txt");
+        }
+
+        private static byte[] AddEntries(byte[] package, params string[] paths)
+        {
+            var entries = TestDataUtil.ReadEntries(package);
+            entries.AddRange(paths.Select(path => new ZipEntry(path, Encoding.UTF8.GetBytes("content"))));
+            return TestDataUtil.WriteEntries(entries);
         }
 
         private static byte[] BuildPackage(params string[] paths)

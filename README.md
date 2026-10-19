@@ -135,39 +135,32 @@ call `DigestVerifier.Verification()`, or use `AsiceVerifier`, which does both.
 
 ## File names in packages
 
-`AsiceReadEntry.FullName` is the path of a file inside the package, as the sender wrote it. The reader checks
-that every entry path is *valid*: relative, with `/` as separator, without empty, `.` or `..` segments,
-without control characters, line separators or bidirectional control characters, which can change how a
-name is displayed, and without Windows device names such as `CON`, `NUL` and `COM1`, which Windows redirects
-to the device. A valid path combined with a directory using `Path.Combine`
-stays inside that directory. `AsiceReader.Read` rejects packages with other paths, with a file and a folder
-of the same name, or with two files that differ only in Unicode normalisation. `AsiceBuilder.AddFileWithPath`
-rejects the same names.
+`AsiceReadEntry.FullName` is the path of a file inside the package, as the sender wrote it, and
+`AsiceReadEntry.FileName` is the name of the file without the folders it is in. The reader follows the ZIP
+specification, which ETSI EN 319 162-1 refers to, and rejects packages where a path is absolute, has a drive
+letter or uses `\` as separator. It also rejects paths with empty, `.` or `..` segments, and packages where two
+files have the same `FileName` and one of them is in a folder, as they could overwrite each other if you use
+`FileName` as a key. `AsiceBuilder.AddFile` and `AddFileWithPath` reject the same names.
 
-A valid path is not always a legal file name on every operating system. `AsiceEntryPath.IsPortable` also
-rejects `: * ? " < > |`, segments that end with `.` or a space, and segments over 255 bytes or paths over
-4096 bytes. The reader
-and the builder accept such names, because they are legal on some systems, and log a warning. Two files in
-the root folder whose names differ only in case are accepted with a warning too; they are the same file on
-Windows and macOS. Check the name before you write a file under it:
+The reader does not check that a name is legal on the system you write to. On Windows, for example, `NUL` is
+a device and `what?.pdf` is not a legal file name. Check the full path before you write a file under it:
 
 ```csharp
+var root = Path.GetFullPath(outputDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 foreach (var entry in asice.Entries)
 {
-    if (!AsiceEntryPath.IsPortable(entry.FullName))
+    var target = Path.GetFullPath(Path.Combine(root, entry.FullName));
+    if (!target.StartsWith(root, StringComparison.Ordinal))
     {
-        throw new InvalidOperationException(
-            $"Refusing to write '{entry.FullName}': {AsiceEntryPath.Describe(entry.FullName)}");
+        throw new InvalidOperationException($"Refusing to write '{entry.FullName}' outside {root}");
     }
 
-    var target = Path.Combine(outputDirectory, entry.FullName);
+    Directory.CreateDirectory(Path.GetDirectoryName(target));
     // write entry.OpenStream() to target
 }
 ```
 
-The rules do not make a name safe for a shell (`~`, `$`, `;` and backticks are allowed), do not look at what
-already exists at the target, such as symbolic links, do not normalise Unicode, and do not know the limits of
-the file system you write to.
+Never pass a name from a package to a shell.
 
 ## Logging
 
