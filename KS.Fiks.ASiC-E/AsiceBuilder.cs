@@ -172,13 +172,24 @@ public sealed class AsiceBuilder : IAsiceBuilder<AsiceArchive>
         return AddFile(stream, filename, MimeTypeExtractor.ExtractMimeType(filename));
     }
 
+    /// <summary>
+    /// Adds a file to the root of the package. Only the file name part of <paramref name="filename"/> is used,
+    /// as <see cref="Path.GetFileName(string)"/> sees it: the part after the last '/', and on Windows also
+    /// after the last '\'. On other systems a name with '\' is used as it is, and then rejected.
+    /// </summary>
     public IAsiceBuilder<AsiceArchive> AddFile(Stream stream, string filename, MimeType mimeType)
     {
         _asiceArchive.AddEntry(stream, new FileRef(Path.GetFileName(filename), mimeType));
         return this;
     }
 
-
+    /// <summary>
+    /// Adds a file at the given path in the package, for example <c>root/someFolder/small.pdf</c>. The path must
+    /// be relative, with '/' as separator and without empty, '.' or '..' segments. Two files may not have the
+    /// same file name if one of them is in a folder, as receivers that use <see cref="AsiceReadEntry.FileName"/>
+    /// could not tell them apart.
+    /// </summary>
+    /// <exception cref="ArgumentException">If the path is not valid, is a folder, is <c>mimetype</c> or <c>META-INF</c>, or cannot be told apart from a file already added by its file name</exception>
     public IAsiceBuilder<AsiceArchive> AddFileWithPath(Stream stream, string filename, MimeType mimeType)
     {
         _asiceArchive.AddEntry(stream, new FileRef(filename, mimeType));

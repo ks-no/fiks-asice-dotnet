@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
@@ -73,6 +74,57 @@ namespace KS.Fiks.ASiC_E.Test.Crypto
             result.AllValid.ShouldBeTrue();
             result.ValidElements.Count().ShouldBe(2);
             result.ValidElements.ShouldContain(FileOne.Name, FileTwo.Name);
+        }
+
+        [Fact(DisplayName = "Verify digests, one file received twice and another not at all")]
+        public void VerifyDuplicateAndMissing()
+        {
+            var digestVerifier = CreateDigestVerifierForTest();
+            digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
+            digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
+            Func<DigestVerificationResult> action = () => digestVerifier.Verification();
+            action.ShouldThrow<DigestVerificationException>().Message.ShouldBe("The following declared files were not processed by the verifier: fileTwo.txt");
+        }
+
+        [Fact(DisplayName = "Verify digests, a missing file with a line separator in its name is escaped in the message")]
+        public void VerifyMissingWithLineSeparatorIsEscaped()
+        {
+            // The names come from the manifest, which can declare names that are not valid paths
+            var missing = new DeclaredDigestFile(FileTwo.Digest.ToArray(), MessageDigestAlgorithm.SHA256, "a\u2028b.txt", MimeType);
+            var digestVerifier = DigestVerifier.Create(new Dictionary<string, DeclaredDigestFile>
+            {
+                { FileOne.Name, FileOne },
+                { missing.Name, missing }
+            });
+            digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
+            digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
+            Func<DigestVerificationResult> action = () => digestVerifier.Verification();
+
+            var message = action.ShouldThrow<DigestVerificationException>().Message;
+            message.ShouldContain("aU+2028b.txt");
+            message.ShouldNotContain("\u2028");
+        }
+
+        [Fact(DisplayName = "Verify digests, file that is not declared is invalid")]
+        public void VerifyUndeclaredFile()
+        {
+            var digestVerifier = CreateDigestVerifierForTest();
+            digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
+            digestVerifier.ReceiveDigest("other.txt", FileTwo.Digest.ToArray());
+            Func<DigestVerificationResult> action = () => digestVerifier.Verification();
+            action.ShouldThrow<DigestVerificationException>().Message.ShouldContain("fileTwo.txt");
+        }
+
+        [Fact(DisplayName = "Verify digests, the comparer of the declared digests is used")]
+        public void VerifyWithCaseInsensitiveDeclaredDigests()
+        {
+            var declaredDigests = new Dictionary<string, DeclaredDigestFile>(StringComparer.OrdinalIgnoreCase)
+            {
+                { FileOne.Name, FileOne }
+            };
+            var digestVerifier = DigestVerifier.Create(declaredDigests);
+            digestVerifier.ReceiveDigest(FileOne.Name.ToUpperInvariant(), FileOne.Digest.ToArray());
+            digestVerifier.Verification().AllValid.ShouldBeTrue();
         }
 
         private static DigestVerifier CreateDigestVerifierForTest()
