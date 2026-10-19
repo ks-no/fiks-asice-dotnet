@@ -144,31 +144,27 @@ public sealed class AsiceReadModel : IDisposable
 
     private static void RejectFileAndFolderWithSameName(ZipArchive zipArchive)
     {
-        // A file cannot be created where a folder is, so such a package cannot be unpacked anywhere
-        var folders = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var entry in zipArchive.Entries)
+        // A file cannot be created where a folder is, so such a package cannot be unpacked anywhere. Every file
+        // counts, also mimetype and the files in META-INF. In ordinal order the paths in a folder come right
+        // after "folder/", so a binary search finds them without keeping every folder prefix, which would take
+        // memory quadratic in the depth of a path
+        var paths = zipArchive.Entries.Select(entry => entry.FullName).ToList();
+        paths.Sort(StringComparer.Ordinal);
+        foreach (var file in paths.Where(path => !AsiceEntryPath.IsFolder(path)))
         {
-            var path = entry.FullName;
-            if (AsiceEntryPath.IsFolder(path))
+            var folder = file + "/";
+            var index = paths.BinarySearch(folder, StringComparer.Ordinal);
+            if (index < 0)
             {
-                path = path.Substring(0, path.Length - 1);
-                folders.Add(path);
+                index = ~index;
             }
 
-            for (var separator = path.IndexOf("/", StringComparison.Ordinal);
-                 separator > 0;
-                 separator = path.IndexOf("/", separator + 1, StringComparison.Ordinal))
+            if (index < paths.Count && paths[index].StartsWith(folder, StringComparison.Ordinal))
             {
-                folders.Add(path.Substring(0, separator));
+                throw new ArgumentException(
+                    $"Archive is not supported as '{AsiceEntryPath.Escape(file)}' is both a file and a folder",
+                    nameof(zipArchive));
             }
-        }
-
-        var fileAndFolder = GetDataEntries(zipArchive).FirstOrDefault(entry => folders.Contains(entry.FullName));
-        if (fileAndFolder != null)
-        {
-            throw new ArgumentException(
-                $"Archive is not supported as '{AsiceEntryPath.Escape(fileAndFolder.FullName)}' is both a file and a folder",
-                nameof(zipArchive));
         }
     }
 

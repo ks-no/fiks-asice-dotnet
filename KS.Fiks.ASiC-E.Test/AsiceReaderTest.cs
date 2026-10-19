@@ -156,6 +156,44 @@ namespace KS.Fiks.ASiC_E.Test
             read.ShouldThrow<ArgumentException>().Message.ShouldContain("'a' is both a file and a folder");
         }
 
+        [Fact(DisplayName = "Package with a folder where the mimetype file is is rejected")]
+        public void FolderWithSameNameAsMimetypeIsRejected()
+        {
+            var package = BuildPackage("mimetype/payload.txt");
+
+            Action read = () => new AsiceReader().Read(new MemoryStream(package));
+
+            read.ShouldThrow<ArgumentException>().Message.ShouldContain("'mimetype' is both a file and a folder");
+        }
+
+        [Fact(DisplayName = "Package with a folder where the manifest is is rejected")]
+        public void FolderWithSameNameAsManifestIsRejected()
+        {
+            var entries = TestDataUtil.ReadEntries(BuildPackage("file.txt"));
+            entries.Add(new ZipEntry(AsiceConstants.CadesManifestFilename + "/", Array.Empty<byte>()));
+            var package = TestDataUtil.WriteEntries(entries);
+
+            Action read = () => new AsiceReader().Read(new MemoryStream(package));
+
+            read.ShouldThrow<ArgumentException>().Message
+                .ShouldContain($"'{AsiceConstants.CadesManifestFilename}' is both a file and a folder");
+        }
+
+        [Fact(DisplayName = "Package with a deeply nested path can be read without using memory quadratic in the depth")]
+        public void DeeplyNestedPathIsAccepted()
+        {
+            // 32 000 folders in a name of 64 005 bytes. Keeping every folder prefix would take about 2 GB
+            var path = string.Concat(Enumerable.Repeat("a/", 32000)) + "f.txt";
+            var package = BuildPackage(path);
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            using var asice = new AsiceReader().Read(new MemoryStream(package));
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            asice.Entries.Single().FullName.ShouldBe(path);
+            allocated.ShouldBeLessThan(100L * 1024 * 1024);
+        }
+
         [Fact(DisplayName = "Package with file names that differ only in Unicode normalisation is rejected")]
         public void SameFileNameInDifferentNormalizationIsRejected()
         {
