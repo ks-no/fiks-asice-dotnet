@@ -137,6 +137,27 @@ public class AsiceBuilderTest
         addFile.ShouldThrow<ArgumentException>().Message.ShouldContain("is not allowed: ");
     }
 
+    [Theory(DisplayName = "AddFileWithPath rejects the names the package itself uses, whatever their case")]
+    [InlineData("META-INF")]
+    [InlineData("meta-inf")]
+    [InlineData("MIMETYPE")]
+    public void TestAddFileWithPathRejectsMetaInf(string path)
+    {
+        using var zipStream = new MemoryStream();
+        using var asiceBuilder = AsiceBuilder.Create(
+            zipStream,
+            MessageDigestAlgorithm.SHA256,
+            ManifestSpec.Cades,
+            null);
+
+        Action addFile = () => asiceBuilder.AddFileWithPath(
+            new MemoryStream(new byte[] { 1 }),
+            path,
+            MimeType.ForString("application/pdf"));
+
+        addFile.ShouldThrow<ArgumentException>().Message.ShouldContain("not allowed");
+    }
+
     [Theory(DisplayName = "AddFileWithPath accepts a name that is valid but not portable, with a warning")]
     [InlineData("file.pdf:hidden")]
     [InlineData("~/file.pdf", false)]

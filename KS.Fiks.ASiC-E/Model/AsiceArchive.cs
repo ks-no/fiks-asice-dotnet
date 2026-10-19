@@ -92,15 +92,17 @@ public class AsiceArchive : IDisposable
         var rule = AsiceEntryPath.FirstViolation(packageEntry.FileName);
         if ((rule != null && !AsiceEntryPath.IsPortabilityRule(rule.Value))
             || AsiceEntryPath.IsFolder(packageEntry.FileName)
-            || packageEntry.FileName == AsiceConstants.FileNameMimeType)
+            || packageEntry.FileName.Equals(AsiceConstants.FileNameMimeType, StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException(
                 $"The file name '{AsiceEntryPath.Escape(packageEntry.FileName)}' is not allowed: {DescribeInvalidFileName(packageEntry.FileName, rule)}");
         }
 
-        if (packageEntry.FileName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
+        // The manifest and the signatures are written to META-INF/, so a file named META-INF would be in the way
+        if (packageEntry.FileName.Equals("META-INF", StringComparison.OrdinalIgnoreCase)
+            || packageEntry.FileName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("Adding files to META-INF is not allowed.");
+            throw new ArgumentException("Adding a file named META-INF or files to META-INF is not allowed.");
         }
 
         if (rule != null)
