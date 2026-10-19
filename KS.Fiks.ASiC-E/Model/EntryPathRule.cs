@@ -33,17 +33,17 @@ public enum EntryPathRule
     ControlCharacter,
 
     /// <summary>
+    /// A segment contains a bidirectional control character (U+202A to U+202E, U+2066 to U+2069), which can
+    /// change how the name is displayed, so that <c>evil\u202Efdp.exe</c> looks like <c>evilexe.pdf</c>.
+    /// </summary>
+    BidiControl,
+
+    /// <summary>
     /// A segment is a reserved device name on Windows (CON, PRN, AUX, NUL, COM0 to COM9, LPT0 to LPT9, and
     /// the forms with superscript digits), with or without an extension. Windows redirects such a name to the
     /// device, whatever directory it is combined with.
     /// </summary>
     ReservedDeviceName,
-
-    /// <summary>
-    /// A segment contains a bidirectional control character (U+202A to U+202E, U+2066 to U+2069), which can
-    /// change how the name is displayed. Portability rule.
-    /// </summary>
-    BidiControl,
 
     /// <summary>
     /// A segment contains one of <c>: * ? " &lt; &gt; |</c>, which Windows does not allow in a file name.

@@ -66,6 +66,8 @@ namespace KS.Fiks.ASiC_E.Test
         [InlineData("file\u0000.pdf")]
         [InlineData("invoice\u0085FAKE.pdf")]
         [InlineData("a\u2028b.pdf")]
+        [InlineData("evil\u202efdp.exe")]
+        [InlineData("root/a\u2066b/file.pdf")]
         [InlineData("con.pdf")]
         [InlineData("NUL.")]
         [InlineData("root/aux/file.pdf")]
@@ -115,7 +117,6 @@ namespace KS.Fiks.ASiC_E.Test
         [Theory(DisplayName = "Package with a name that is valid but not portable is read, with a warning")]
         [InlineData("file.pdf:hidden")]
         [InlineData("file.pdf.")]
-        [InlineData("evil\u202efdp.exe")]
         public void NonPortableNameIsReadWithWarning(string path)
         {
             var package = BuildPackage(path);
@@ -128,10 +129,10 @@ namespace KS.Fiks.ASiC_E.Test
                 entry.Level == LogLevel.Warning && entry.Message.Contains("not portable", StringComparison.Ordinal));
         }
 
-        [Fact(DisplayName = "Names that are not portable give one warning per package, with the names escaped")]
+        [Fact(DisplayName = "Names that are not portable give one warning per package")]
         public void NonPortableNamesGiveOneWarningPerPackage()
         {
-            var package = BuildPackage("file.pdf.", "ab:c.pdf", "evil\u202efdp.exe", "ok.pdf");
+            var package = BuildPackage("file.pdf.", "ab:c.pdf", "what?.pdf", "ok.pdf");
             var loggerFactory = new CapturingLoggerFactory();
 
             using var asice = new AsiceReader(loggerFactory).Read(new MemoryStream(package));
@@ -141,8 +142,7 @@ namespace KS.Fiks.ASiC_E.Test
             warnings[0].Message.ShouldContain("3 entries");
             warnings[0].Message.ShouldContain("'file.pdf.'");
             warnings[0].Message.ShouldContain("'ab:c.pdf'");
-            warnings[0].Message.ShouldContain("U+202E");
-            warnings[0].Message.ShouldNotContain("\u202e");
+            warnings[0].Message.ShouldContain("'what?.pdf'");
             warnings[0].Message.ShouldNotContain("ok.pdf");
         }
 

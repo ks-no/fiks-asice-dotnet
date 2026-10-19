@@ -11,18 +11,18 @@ namespace KS.Fiks.ASiC_E.Model;
 /// <see cref="AsiceBuilder.AddFileWithPath"/>.
 /// <para>
 /// A <b>valid</b> path is relative, uses '/' as separator, has no empty, '.' or '..' segments, has no
-/// control characters, line separators or lone surrogates, and has no reserved device name such as <c>CON</c>,
-/// <c>NUL</c> or <c>COM1</c>, which Windows redirects to the device whatever directory it is combined with.
+/// control characters, line separators, bidirectional control characters or lone surrogates, and has no
+/// reserved device name such as <c>CON</c>, <c>NUL</c> or <c>COM1</c>, which Windows redirects to the device
+/// whatever directory it is combined with.
 /// Combined with a directory using <c>Path.Combine</c>, a valid path stays inside that directory. The reader
 /// rejects packages with entries that are not valid, and the builder rejects such file names.
 /// </para>
 /// <para>
 /// A <b>portable</b> path is valid and is also a legal file name on Windows, Linux and macOS: none of
-/// <c>: * ? " &lt; &gt; |</c>, no segment that ends with '.' or ' ', no bidirectional control characters, and
-/// at most <see cref="MaxSegmentBytes"/> bytes per segment and <see cref="MaxPathBytes"/> bytes in total. The
-/// reader and the builder accept paths that are valid but not portable, and log a warning, because such names
-/// are legal on some systems. Check <see cref="IsPortable"/> before you write a file to disk under a name from
-/// a package.
+/// <c>: * ? " &lt; &gt; |</c>, no segment that ends with '.' or ' ', and at most <see cref="MaxSegmentBytes"/>
+/// bytes per segment and <see cref="MaxPathBytes"/> bytes in total. The reader and the builder accept paths
+/// that are valid but not portable, and log a warning, because such names are legal on some systems. Check
+/// <see cref="IsPortable"/> before you write a file to disk under a name from a package.
 /// </para>
 /// <para>
 /// No rule makes a name safe for a shell: <c>~</c>, <c>$</c>, <c>;</c>, backticks and a leading '-' are allowed.
@@ -52,7 +52,7 @@ public static class AsiceEntryPath
 
     /// <summary>
     /// True if the path is valid: relative, '/' as separator, no empty, '.' or '..' segments, no control
-    /// characters, no reserved device names. See the class documentation.
+    /// or bidirectional control characters, no reserved device names. See the class documentation.
     /// </summary>
     public static bool IsValid(string path)
     {
@@ -185,6 +185,15 @@ public static class AsiceEntryPath
 
         foreach (var segment in segments)
         {
+            var bidiIndex = IndexOf(segment, IsBidiControl);
+            if (bidiIndex >= 0)
+            {
+                return new Violation(EntryPathRule.BidiControl, segment, segment[bidiIndex]);
+            }
+        }
+
+        foreach (var segment in segments)
+        {
             if (IsReservedDeviceName(segment))
             {
                 return new Violation(EntryPathRule.ReservedDeviceName, segment);
@@ -193,12 +202,6 @@ public static class AsiceEntryPath
 
         foreach (var segment in segments)
         {
-            var bidiIndex = IndexOf(segment, IsBidiControl);
-            if (bidiIndex >= 0)
-            {
-                return new Violation(EntryPathRule.BidiControl, segment, segment[bidiIndex]);
-            }
-
             var forbiddenIndex = segment.IndexOfAny(ForbiddenCharacters);
             if (forbiddenIndex >= 0)
             {

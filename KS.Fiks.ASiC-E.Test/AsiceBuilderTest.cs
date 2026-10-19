@@ -116,6 +116,7 @@ public class AsiceBuilderTest
     [InlineData("a:b")]
     [InlineData("file\u0000.pdf")]
     [InlineData("invoice\u0085FAKE.pdf")]
+    [InlineData("evil\u202efdp.exe")]
     [InlineData("con.pdf")]
     [InlineData("NUL.")]
     [InlineData(null)]
@@ -138,7 +139,6 @@ public class AsiceBuilderTest
 
     [Theory(DisplayName = "AddFileWithPath accepts a name that is valid but not portable, with a warning")]
     [InlineData("file.pdf:hidden")]
-    [InlineData("evil\u202efdp.exe")]
     [InlineData("~/file.pdf", false)]
     public void TestAddFileWithPathWarnsAboutNonPortableName(string path, bool expectWarning = true)
     {
