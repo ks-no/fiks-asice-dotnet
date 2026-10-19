@@ -28,8 +28,6 @@ public class AsiceArchive : IDisposable
 
     private readonly Queue<AsicePackageEntry> _entries = new Queue<AsicePackageEntry>();
 
-    private readonly Dictionary<string, List<string>> _pathsByFileName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-
     private readonly ILogger<AsiceArchive> _logger;
 
     public AsiceArchive(
@@ -91,12 +89,13 @@ public class AsiceArchive : IDisposable
     public AsiceArchive AddEntry(Stream contentStream, FileRef entry)
     {
         var packageEntry = entry ?? throw new ArgumentNullException(nameof(entry), "Entry must be provided");
-        if (!EntryPath.IsValid(packageEntry.FileName)
-            || EntryPath.IsFolder(packageEntry.FileName)
+        var rule = AsiceEntryPath.FirstViolation(packageEntry.FileName);
+        if ((rule != null && !AsiceEntryPath.IsPortabilityRule(rule.Value))
+            || AsiceEntryPath.IsFolder(packageEntry.FileName)
             || packageEntry.FileName.Equals(AsiceConstants.FileNameMimeType, StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException(
-                $"The file name '{EntryPath.Escape(packageEntry.FileName)}' is not allowed. It must be a relative path to a file, with '/' as separator and without empty, '.' or '..' segments, and it must not be '{AsiceConstants.FileNameMimeType}'.");
+                $"The file name '{AsiceEntryPath.Escape(packageEntry.FileName)}' is not allowed: {DescribeInvalidFileName(packageEntry.FileName, rule)}");
         }
 
         // The manifest and the signatures are written to META-INF/, so a file named META-INF would be in the way
@@ -106,21 +105,13 @@ public class AsiceArchive : IDisposable
             throw new ArgumentException("Adding a file named META-INF or files to META-INF is not allowed.");
         }
 
-        // The reader rejects packages where files cannot be told apart by their file name, so the builder must not write them
-        var fileName = EntryPath.FileName(packageEntry.FileName);
-        if (!_pathsByFileName.TryGetValue(fileName, out var pathsWithSameFileName))
+        if (rule != null)
         {
-            pathsWithSameFileName = new List<string>();
-            _pathsByFileName.Add(fileName, pathsWithSameFileName);
+            _logger.LogWarning(
+                "The file name '{FileName}' is not portable: {Reason}. Receivers on Windows may not be able to write it",
+                AsiceEntryPath.Escape(packageEntry.FileName),
+                AsiceEntryPath.Describe(packageEntry.FileName));
         }
-
-        if (EntryPath.IsFileNameConflict(pathsWithSameFileName.Append(packageEntry.FileName).ToList()))
-        {
-            throw new ArgumentException(
-                $"The file name '{EntryPath.Escape(packageEntry.FileName)}' is not allowed, as the package already has a file named '{EntryPath.Escape(fileName)}'.");
-        }
-
-        pathsWithSameFileName.Add(packageEntry.FileName);
 
         _logger.LogDebug(
             "Adding entry '{FileName}' of type '{MimeType}' to the ASiC-e archive",
@@ -160,6 +151,21 @@ public class AsiceArchive : IDisposable
         var manifestContainer = AddManifest(signatureFileRef);
         AddSignature(manifestContainer);
         _zipArchive.Dispose();
+    }
+
+    private static string DescribeInvalidFileName(string fileName, EntryPathRule? rule)
+    {
+        if (rule != null && !AsiceEntryPath.IsPortabilityRule(rule.Value))
+        {
+            return AsiceEntryPath.Describe(fileName);
+        }
+
+        if (AsiceEntryPath.IsFolder(fileName))
+        {
+            return "it must be the path of a file, not a folder";
+        }
+
+        return $"'{AsiceConstants.FileNameMimeType}' is reserved";
     }
 
     private AsicePackageEntry CreateEntry(Stream contentStream, AsicePackageEntry entry)

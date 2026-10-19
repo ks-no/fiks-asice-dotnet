@@ -3,16 +3,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using KS.Fiks.ASiC_E.Crypto;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Sign;
 using KS.Fiks.ASiC_E.Xsd;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace KS.Fiks.ASiC_E.Model;
 
 public sealed class AsiceReadModel : IDisposable
 {
+    private const int MaxNamesInWarning = 10;
+
     public IEnumerable<AsiceReadEntry> Entries { get; }
 
     public CadesManifest CadesManifest { get; }
@@ -47,7 +51,7 @@ public sealed class AsiceReadModel : IDisposable
                 nameof(zipArchive));
         }
 
-        ValidateEntryNames(asicArchive);
+        ValidateEntryNames(asicArchive, (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<AsiceReadModel>());
 
         _zipArchive = zipArchive;
 
@@ -103,26 +107,123 @@ public sealed class AsiceReadModel : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static void ValidateEntryNames(ZipArchive zipArchive)
+    private static void ValidateEntryNames(ZipArchive zipArchive, ILogger logger)
     {
-        var invalidPath = zipArchive.Entries.FirstOrDefault(entry => !EntryPath.IsValid(entry.FullName));
-        if (invalidPath != null)
+        var notPortable = new List<string>();
+        foreach (var entry in zipArchive.Entries)
         {
-            throw new ArgumentException(
-                $"Archive is not a valid ASiC-E archive as the entry '{EntryPath.Escape(invalidPath.FullName)}' has an invalid path. It must be relative, with '/' as separator and without empty, '.' or '..' segments",
-                nameof(zipArchive));
+            var rule = AsiceEntryPath.FirstViolation(entry.FullName);
+            if (rule == null)
+            {
+                continue;
+            }
+
+            if (!AsiceEntryPath.IsPortabilityRule(rule.Value))
+            {
+                throw new ArgumentException(
+                    $"Archive is not a valid ASiC-E archive as the entry '{AsiceEntryPath.Escape(entry.FullName)}' has an invalid path: {AsiceEntryPath.Describe(entry.FullName)}",
+                    nameof(zipArchive));
+            }
+
+            notPortable.Add($"'{AsiceEntryPath.Escape(entry.FullName)}' ({AsiceEntryPath.Describe(entry.FullName)})");
+        }
+
+        // Names that are legal on some systems but not on all are accepted, so that packages from other
+        // senders can still be read. The receiver must check the names before writing the files to disk
+        if (notPortable.Count > 0)
+        {
+            logger.LogWarning(
+                "{Count} entries have names that are not portable. Check them before you use them as paths on disk: {Names}",
+                notPortable.Count,
+                string.Join(", ", notPortable.Take(MaxNamesInWarning)) + (notPortable.Count > MaxNamesInWarning ? ", ..." : string.Empty));
+        }
+
+        RejectFileAndFolderWithSameName(zipArchive);
+        CheckDuplicateFileNames(zipArchive, logger);
+    }
+
+    private static void RejectFileAndFolderWithSameName(ZipArchive zipArchive)
+    {
+        // A file cannot be created where a folder is, so such a package cannot be unpacked anywhere. Every file
+        // counts, also mimetype and the files in META-INF. In ordinal order the paths in a folder come right
+        // after "folder/", so a binary search finds them without keeping every folder prefix, which would take
+        // memory quadratic in the depth of a path
+        var paths = zipArchive.Entries.Select(entry => entry.FullName).ToList();
+        paths.Sort(StringComparer.Ordinal);
+        foreach (var file in paths.Where(path => !AsiceEntryPath.IsFolder(path)))
+        {
+            var folder = file + "/";
+            var index = paths.BinarySearch(folder, StringComparer.Ordinal);
+            if (index < 0)
+            {
+                index = ~index;
+            }
+
+            if (index < paths.Count && paths[index].StartsWith(folder, StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    $"Archive is not supported as '{AsiceEntryPath.Escape(file)}' is both a file and a folder",
+                    nameof(zipArchive));
+            }
+        }
+    }
+
+    private static void CheckDuplicateFileNames(ZipArchive zipArchive, ILogger logger)
+    {
+        // Names that differ only in Unicode normalisation are the same file on macOS, so they count as equal
+        var normalizationUnsupported = false;
+        string Normalize(string name)
+        {
+            if (normalizationUnsupported)
+            {
+                return name;
+            }
+
+            try
+            {
+                return name.Normalize(NormalizationForm.FormC);
+            }
+            catch (ArgumentException)
+            {
+                return name;
+            }
+            catch (PlatformNotSupportedException)
+            {
+                normalizationUnsupported = true;
+                return name;
+            }
+        }
+
+        var groups = GetDataEntries(zipArchive)
+            .GroupBy(entry => Normalize(entry.Name), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.ToList())
+            .Where(entries => entries.Count > 1)
+            .ToList();
+
+        if (normalizationUnsupported)
+        {
+            logger.LogWarning(
+                "Unicode normalisation is not supported on this platform, so file names that differ only in normalisation are not detected as duplicates");
         }
 
         // FileName is only the name of the file, so files with the same name in different folders
-        // could overwrite each other if a receiver uses FileName as a key
-        var duplicateFileName = GetDataEntries(zipArchive)
-            .GroupBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault(entries => EntryPath.IsFileNameConflict(entries.Select(entry => entry.FullName).ToList()));
-        if (duplicateFileName != null)
+        // could overwrite each other if a receiver uses FileName as a key. Names that differ only in
+        // case are allowed in the root folder, as they always have been, but not when folders are involved
+        var conflict = groups.FirstOrDefault(entries =>
+            entries.Any(entry => entry.FullName != entry.Name)
+            || entries.Select(entry => Normalize(entry.Name)).Distinct(StringComparer.Ordinal).Count() < entries.Count);
+        if (conflict != null)
         {
             throw new ArgumentException(
-                $"Archive is not supported as more than one file is named '{EntryPath.Escape(duplicateFileName.Key)}'",
+                $"Archive is not supported as more than one file is named '{AsiceEntryPath.Escape(conflict[0].Name)}'",
                 nameof(zipArchive));
+        }
+
+        foreach (var entries in groups)
+        {
+            logger.LogWarning(
+                "The files {Names} differ only in case. They are the same file on Windows and macOS",
+                string.Join(", ", entries.Select(entry => $"'{AsiceEntryPath.Escape(entry.FullName)}'")));
         }
     }
 
@@ -131,7 +232,7 @@ public sealed class AsiceReadModel : IDisposable
         return zipArchive.Entries
             .Where(entry => entry.FullName != AsiceConstants.FileNameMimeType)
             .Where(entry => !entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase))
-            .Where(entry => !EntryPath.IsFolder(entry.FullName));
+            .Where(entry => !AsiceEntryPath.IsFolder(entry.FullName));
     }
 
     private IEnumerable<AsiceReadEntry> GetAsiceEntries()
@@ -149,7 +250,7 @@ public sealed class AsiceReadModel : IDisposable
         if (CadesManifest?.Digests?.TryGetValue(fullEntryName, out declaredDigest) != true)
         {
             throw new DigestVerificationException(
-                $"Could not find declared digest method for entry '{EntryPath.Escape(fullEntryName)}'");
+                $"Could not find declared digest method for entry '{AsiceEntryPath.Escape(fullEntryName)}'");
         }
 
         return declaredDigest.MessageDigestAlgorithm;
@@ -207,6 +308,6 @@ public sealed class AsiceReadModel : IDisposable
     private byte[] GetSignatureData(string fileName)
     {
         return GetDataForEntry(fileName) ?? throw new SignatureVerificationException(
-            $"The signature file '{EntryPath.Escape(fileName)}' referenced in the manifest is missing");
+            $"The signature file '{AsiceEntryPath.Escape(fileName)}' referenced in the manifest is missing");
     }
 }

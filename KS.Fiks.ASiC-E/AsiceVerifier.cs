@@ -39,7 +39,7 @@ public class AsiceVerifier : IAsiceVerifier
             if (!verificationResult.AllValid)
             {
                 var invalidFileList =
-                    verificationResult.InvalidElements.Select(EntryPath.Escape).Aggregate((aggregate, element) => aggregate + "," + element);
+                    verificationResult.InvalidElements.Select(AsiceEntryPath.Escape).Aggregate((aggregate, element) => aggregate + "," + element);
                 throw new DigestVerificationException(
                     $"Failed to validate digest for the following files {invalidFileList}");
             }
