@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using System.Xml.Serialization;
 using KS.Fiks.ASiC_E.Manifest;
 using KS.Fiks.ASiC_E.Model;
@@ -55,6 +56,21 @@ namespace KS.Fiks.ASiC_E.Test.Manifest
             xmlManifest.SigReference.ShouldNotBeNull();
             xmlManifest.SigReference.MimeType.ShouldBe(AsiceConstants.ContentTypeSignature);
             xmlManifest.DataObjectReference.ShouldHaveSingleItem();
+        }
+
+        [Fact(DisplayName = "CAdES manifest follows ETSI EN 319 162-1 for name and namespace")]
+        public void CadesManifestFollowsEtsi()
+        {
+            var fileEntry = new AsicePackageEntry("my.pdf", MimeType.ForString("application/pdf"), MessageDigestAlgorithm.SHA256);
+            fileEntry.Digest = new DigestContainer(new byte[] { 0, 0, 1 }, MessageDigestAlgorithm.SHA256);
+            var manifest = new CadesManifestCreator().CreateManifest(
+                new[] { fileEntry },
+                new CadesSignature().CreateSignatureRef());
+
+            manifest.FileName.ShouldBe("META-INF/ASiCManifest.xml");
+            var root = XDocument.Load(new MemoryStream(manifest.Data.ToArray())).Root;
+            root.Name.ShouldBe(XName.Get("ASiCManifest", "http://uri.etsi.org/02918/v1.2.1#"));
+            root.Elements().ShouldAllBe(e => e.Name.NamespaceName == "http://uri.etsi.org/02918/v1.2.1#");
         }
 
         private static ASiCManifestType DeserializeManifest(byte[] data)
