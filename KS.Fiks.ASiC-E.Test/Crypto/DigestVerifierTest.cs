@@ -86,6 +86,25 @@ namespace KS.Fiks.ASiC_E.Test.Crypto
             action.ShouldThrow<DigestVerificationException>().Message.ShouldBe("The following declared files were not processed by the verifier: fileTwo.txt");
         }
 
+        [Fact(DisplayName = "Verify digests, a missing file with a line separator in its name is escaped in the message")]
+        public void VerifyMissingWithLineSeparatorIsEscaped()
+        {
+            // The names come from the manifest, which can declare names that are not valid paths
+            var missing = new DeclaredDigestFile(FileTwo.Digest.ToArray(), MessageDigestAlgorithm.SHA256, "a\u2028b.txt", MimeType);
+            var digestVerifier = DigestVerifier.Create(new Dictionary<string, DeclaredDigestFile>
+            {
+                { FileOne.Name, FileOne },
+                { missing.Name, missing }
+            });
+            digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
+            digestVerifier.ReceiveDigest(FileOne.Name, FileOne.Digest.ToArray());
+            Func<DigestVerificationResult> action = () => digestVerifier.Verification();
+
+            var message = action.ShouldThrow<DigestVerificationException>().Message;
+            message.ShouldContain("aU+2028b.txt");
+            message.ShouldNotContain("\u2028");
+        }
+
         [Fact(DisplayName = "Verify digests, file that is not declared is invalid")]
         public void VerifyUndeclaredFile()
         {

@@ -67,7 +67,7 @@ public class DigestVerifier : IDigestReceiver, IDigestVerifier
         var missingFiles = _declaredDigests.Where(d => !_receivedFiles.Contains(d.Value)).Select(d => d.Key).ToList();
         if (missingFiles.Count > 0)
         {
-            throw new DigestVerificationException($"The following declared files were not processed by the verifier: {string.Join(",", missingFiles)}");
+            throw new DigestVerificationException($"The following declared files were not processed by the verifier: {string.Join(",", missingFiles.Select(AsiceEntryPath.Escape))}");
         }
 
         return new DigestVerificationResult(_validFiles, _invalidFiles);

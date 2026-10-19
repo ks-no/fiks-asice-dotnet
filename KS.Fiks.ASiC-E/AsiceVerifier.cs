@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using KS.Fiks.ASiC_E.Crypto;
+using KS.Fiks.ASiC_E.Model;
 using KS.Fiks.ASiC_E.Xsd;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -38,7 +39,7 @@ public class AsiceVerifier : IAsiceVerifier
             if (!verificationResult.AllValid)
             {
                 var invalidFileList =
-                    verificationResult.InvalidElements.Aggregate((aggregate, element) => aggregate + "," + element);
+                    verificationResult.InvalidElements.Select(AsiceEntryPath.Escape).Aggregate((aggregate, element) => aggregate + "," + element);
                 throw new DigestVerificationException(
                     $"Failed to validate digest for the following files {invalidFileList}");
             }

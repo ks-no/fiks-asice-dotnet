@@ -250,7 +250,7 @@ public sealed class AsiceReadModel : IDisposable
         if (CadesManifest?.Digests?.TryGetValue(fullEntryName, out declaredDigest) != true)
         {
             throw new DigestVerificationException(
-                $"Could not find declared digest method for entry '{fullEntryName}'");
+                $"Could not find declared digest method for entry '{AsiceEntryPath.Escape(fullEntryName)}'");
         }
 
         return declaredDigest.MessageDigestAlgorithm;
@@ -308,6 +308,6 @@ public sealed class AsiceReadModel : IDisposable
     private byte[] GetSignatureData(string fileName)
     {
         return GetDataForEntry(fileName) ?? throw new SignatureVerificationException(
-            $"The signature file '{fileName}' referenced in the manifest is missing");
+            $"The signature file '{AsiceEntryPath.Escape(fileName)}' referenced in the manifest is missing");
     }
 }

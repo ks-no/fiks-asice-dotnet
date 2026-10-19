@@ -100,6 +100,24 @@ namespace KS.Fiks.ASiC_E.Test
             verify.ShouldThrow<SignatureVerificationException>().Message.ShouldContain("is missing");
         }
 
+        [Fact(DisplayName = "A signature file name from the manifest with a line separator is escaped in the message")]
+        public void MissingSignatureFileNameIsEscaped()
+        {
+            var entries = TestDataUtil.ReadEntries(BuildPackage(TestdataLoader.ReadCertificatesForTest(), "content"));
+            var signatureName = entries.Single(e => IsSignature(e.Name)).Name;
+            var manifestIndex = entries.FindIndex(e => e.Name == AsiceConstants.CadesManifestFilename);
+            var manifest = Encoding.UTF8.GetString(entries[manifestIndex].Data)
+                .Replace(signatureName, "META-INF/a\u2028b.p7s", StringComparison.Ordinal);
+            entries[manifestIndex] = new ZipEntry(AsiceConstants.CadesManifestFilename, Encoding.UTF8.GetBytes(manifest));
+
+            using var inputStream = new MemoryStream(TestDataUtil.WriteEntries(entries));
+            Action verify = () => new AsiceVerifier().Verify(inputStream);
+
+            var message = verify.ShouldThrow<SignatureVerificationException>().Message;
+            message.ShouldContain("META-INF/aU+2028b.p7s");
+            message.ShouldNotContain("\u2028");
+        }
+
         [Theory(DisplayName = "Verify package with files in folders")]
         [InlineData("root/small.pdf")]
         [InlineData("root/someFolder/small.pdf")]
